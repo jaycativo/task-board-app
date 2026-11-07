@@ -49,6 +49,10 @@ convert existing files.
   toggle switches to a colour-blind-friendly palette.
 - **Reject tasks** from Inbox. Rejected tasks move to a collapsed Rejected
   panel where you can restore them or delete them all with the trash button.
+- **Sort** each column by file order, priority, or due date. High priority and
+  the earliest due date come first, and tasks with neither go last. Sorting only
+  changes how cards are shown: your file keeps its own order, and the board
+  remembers your choice.
 - **Search** by title, ID, priority, date, or a pasted `[[TODO#^task-id]]` link.
 - **Task notes.** A card's Notes button opens a drawer with that task's notes,
   newest first, and a box to add one. The card shows how many notes it has.
@@ -124,7 +128,7 @@ node --test task-board/*.test.mjs
 
 ## Status
 
-Work in progress. Planned: sorting cards by priority and due date.
+Work in progress.
 
 Good to know: deleting or archiving a task does not touch its notes. Notes link
 to `[[TODO#^task-id]]`, so a link to an archived task stops resolving until the

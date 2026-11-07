@@ -1,4 +1,4 @@
-import { filterTasks } from './search.mjs';
+import { filterTasks, sortTasks } from './search.mjs';
 
 const boardElement = document.querySelector('#board');
 const intakeElement = document.querySelector('#intake');
@@ -33,6 +33,7 @@ let busy = false;
 let dragging = false;
 let noteTask;
 let noteCounts = {};
+let sortMode = 'file';
 let noteRequestId;
 let noteSaving = false;
 let taskSaving = false;
@@ -323,7 +324,7 @@ function render() {
     const intake = name === 'Inbox';
     const collapsible = intake || name === 'Rejected';
     const column = element(collapsible ? 'details' : 'section', `column column-${name.toLowerCase().replaceAll(' ', '-')}`);
-    const tasks = matching.filter(task => task.section === name);
+    const tasks = sortTasks(matching.filter(task => task.section === name), sortMode);
     const heading = element(collapsible ? 'summary' : 'div', 'column-heading');
     heading.append(element('span', 'column-dot'), element('h2', '', labels[name] || name), element('span', 'count', String(tasks.length)));
     if (name === 'Rejected' && rejectedCount) {
@@ -625,6 +626,16 @@ paletteButton.addEventListener('click', () => {
   setPalette(next);
   try { localStorage.setItem('palette', next ? 'cb' : ''); } catch {}
 });
+function setSort(mode) {
+  sortMode = ['file', 'priority', 'due'].includes(mode) ? mode : 'file';
+  document.querySelectorAll('.sort button').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.sort === sortMode)));
+}
+try { setSort(localStorage.getItem('sort')); } catch { setSort('file'); }
+document.querySelectorAll('.sort button').forEach(button => button.addEventListener('click', () => {
+  setSort(button.dataset.sort);
+  try { localStorage.setItem('sort', sortMode); } catch {}
+  if (board) render();
+}));
 document.addEventListener('click', event => {
   document.querySelectorAll('.move-menu[open]').forEach(menu => { if (!menu.contains(event.target)) menu.open = false; });
 });

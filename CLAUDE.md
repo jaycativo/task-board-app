@@ -52,12 +52,14 @@ node --test task-board/*.test.mjs  # all tests
   or `--notes-folder`, or `Daily Notes/`. Only `YYYY-MM-DD` is supported. Times use
   the local time zone. Entries the board wrote carry a hidden marker comment; only
   those can be edited or deleted. A marker whose entry was changed by hand is refused.
+- Sorting (file order, priority, due date) is display-only and lives in `search.mjs`
+  as `sortTasks`. The choice is kept in localStorage. File order is the default,
+  because moving a card inserts it at the top of its column in the file.
 - The Move control is a custom `<details>` menu, not a native select, so it
   matches the app. The priority field in the task dialog is still a native select.
 
 ## Still to do
 
-- Sort cards by priority and due date.
 - Check dark mode by eye. Phone width is not a priority.
 
 ## Voice

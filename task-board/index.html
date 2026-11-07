@@ -25,6 +25,10 @@
       <input id="task-search" type="search" placeholder="Search by title or paste a task link…" autocomplete="off" aria-controls="board intake">
       <button id="search-clear" type="button" hidden>Clear</button>
       <span id="search-count" role="status" aria-live="polite"></span>
+      <div class="sort" role="group" aria-label="Sort cards">
+        <span class="sort-label">Sort</span>
+        <button type="button" data-sort="file" aria-pressed="true">File order</button><button type="button" data-sort="priority" aria-pressed="false">Priority</button><button type="button" data-sort="due" aria-pressed="false">Due date</button>
+      </div>
     </div>
     <p id="search-empty" hidden>No tasks match. Try another word.</p>
     <p id="message" role="status" aria-live="polite">Loading TODO.md…</p>
