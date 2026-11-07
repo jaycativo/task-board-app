@@ -29,14 +29,19 @@ node --test task-board/*.test.mjs  # all tests (list the files; a directory path
 
 ## Layout
 
-- `task-board/server.mjs`: parser, task and note logic, HTTP API, startup.
+- `task-board/server.mjs`: the web server. It only routes requests and starts the board.
+- `task-board/board.mjs`: the rules for `TODO.md`: reading it, and every change to it.
+- `task-board/archive.mjs`: moving Done tasks to `TASK-ARCHIVE.md`.
+- `task-board/notes.mjs`: where notes live, and adding, editing, and deleting them.
+- `task-board/errors.mjs`, `safe-write.mjs`: the shared error type and the safe file write.
 - `task-board/app.js`: the whole frontend. `search.mjs` holds search and sorting,
   `calendar.mjs` the date picker's date logic.
 - `task-board/style.css`: design tokens at the top.
 - `task-board/theme.js`: applies the saved light or dark choice before the page is drawn.
 - `scripts/`: builds the Mac Dock app (`make-mac-app.sh`) and its icon (`make-icon.sh`,
   `icon.html`, `task-board.icns`). The built `.app` is never committed.
-- `task-board/*.test.mjs`: tests for server logic, search and sorting, notes, dates.
+- `task-board/*.test.mjs`: one test file per module (board, archive, notes, search, calendar),
+  plus `server.test.mjs` (the request rules over HTTP) and `connection.test.mjs` (starting the board).
 
 ## Skills
 

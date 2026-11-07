@@ -9,9 +9,11 @@ Follow these steps in order. Read the other skills they point to.
 
 ## 1. Put the logic where it can be tested
 
-- Changes to `TODO.md` or to notes are **pure functions in `server.mjs`**:
-  text in, text out, exported. Nothing in them touches the network or the
-  disk. The HTTP handler reads the file, calls the function, and writes the result.
+- Changes to `TODO.md` are **pure functions in `board.mjs`**: text in, text out,
+  exported. Nothing in them touches the network or the disk. The HTTP handler
+  (`server.mjs`) reads the file, calls the function, and writes the result safely.
+- Notes (`notes.mjs`) and the archive (`archive.mjs`) also write their own files, so
+  test them against a scratch folder.
 - Display-only behaviour (search, sorting) lives in `search.mjs` as a pure
   function. It must not change what is written to the file.
 - Anything that reads or writes vault files: read `todo-format`.

@@ -4,7 +4,7 @@ import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync } from 'nod
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { appendTaskNote, readTaskNotes, editTaskNote, deleteTaskNote, countTaskNotes, notesSettings } from './server.mjs';
+import { appendTaskNote, readTaskNotes, editTaskNote, deleteTaskNote, countTaskNotes, notesSettings } from './notes.mjs';
 
 const sample = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '../TODO.md'), 'utf8');
 const ids = ['11111111-1111-4111-8111-111111111111', '22222222-2222-4222-8222-222222222222', '33333333-3333-4333-8333-333333333333'];

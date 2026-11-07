@@ -24,7 +24,7 @@ because of the rules below. Do not weaken them to make a feature easier.
 - **Stay in the vault.** The server may touch only `TODO.md`, `TASK-ARCHIVE.md`,
   and the notes folder. Resolve folders and refuse any that leave the vault.
   Never build a path from request input except an ID that matched its pattern.
-- **Static files are a fixed list.** Only the files named in `server.mjs` are
+- **Static files are a fixed list.** Only the files named in `pageFiles` in `server.mjs` are
   served. A new frontend file must be added to that list on purpose.
 - **Strict CSP.** `default-src 'self'`, no inline scripts or styles, and
   `img-src 'self'`. That means no `data:` URIs: no inline SVG backgrounds, and
@@ -37,9 +37,11 @@ because of the rules below. Do not weaken them to make a feature easier.
 
 ## Checklist for a new endpoint
 
-1. Add the route to the allowed list and the handler map in `server.mjs`.
+1. Add the route to the right table in `server.mjs` (`taskChanges` for changes to `TODO.md`,
+   `noteChanges` for notes). Unknown routes are 404 by default.
 2. Validate each field before reading any file.
 3. Make the change a pure function (text in, text out) so it can be tested.
 4. Require the current revision for anything that changes `TODO.md`.
-5. Add tests for bad input, a stale revision, and a missing task.
+5. Add tests for bad input, a stale revision, and a missing task. `server.test.mjs` shows how to
+   start a real server on a scratch vault and call it over HTTP.
 6. If the endpoint can touch a new file, say so in the README.

@@ -1,507 +1,131 @@
+// The web server: serves the page, answers the page's requests, and starts the board from the command line.
+// The rules for TODO.md and for notes live in board.mjs, archive.mjs, and notes.mjs. This file only routes.
 import http from 'node:http';
-import { createHash, randomBytes } from 'node:crypto';
-import { readFileSync, readdirSync, writeFileSync, appendFileSync, mkdirSync, renameSync, unlinkSync, statSync, realpathSync } from 'node:fs';
-import { dirname, join, basename, resolve, sep } from 'node:path';
+import { readFileSync, realpathSync } from 'node:fs';
+import { dirname, join, basename, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
+import { fail } from './errors.mjs';
+import { writeIfUnchanged } from './safe-write.mjs';
+import { parseBoard, moveTask, createTask, editTask, deleteTask, clearRejected } from './board.mjs';
+import { archiveDone, appendArchive } from './archive.mjs';
+import { notesSettings, appendTaskNote, readTaskNotes, countTaskNotes, editTaskNote, deleteTaskNote } from './notes.mjs';
 
 const directory = dirname(fileURLToPath(import.meta.url));
-const startMarker = '<!-- todo-collector:start -->';
-const endMarker = '<!-- todo-collector:end -->';
-const checkbox = /^([-*+]\s+\[)([ xX-])(\]\s+)(.*)$/;
-// Rejected is optional. It sits after the end marker, and rejected tasks are written as "- [-]" (cancelled in the Tasks plugin).
-export const columns = ['Inbox', 'Backlog', 'Next', 'Now', 'In Progress', 'Done', 'Rejected'];
+const MAX_BODY_BYTES = 40000;
 
-function fail(message, status = 400) {
-  return Object.assign(new Error(message), { status });
-}
+// The only files ever served to the page (plus index.html at "/"). Nothing else is reachable.
+const pageFiles = ['app.js', 'search.mjs', 'calendar.mjs', 'theme.js', 'style.css'];
 
-// Due date and priority use the Obsidian Tasks plugin emoji format, e.g. "Title ⏫ 📅 2026-11-14".
-const priorityEmoji = { high: '⏫', medium: '🔼', low: '🔽' };
-const priorityByEmoji = { '🔺': 'high', '⏫': 'high', '🔼': 'medium', '🔽': 'low', '⏬': 'low' };
-const dueToken = /📅️?\s*(\d{4}-\d{2}-\d{2})/u;
-const priorityToken = /(🔺|⏫|🔼|🔽|⏬)️?/u;
+const securityHeaders = {
+  'Cache-Control': 'no-store',
+  'X-Content-Type-Options': 'nosniff',
+  'Content-Security-Policy': "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'",
+};
 
-function validDate(value) {
-  const [year, month, day] = value.split('-').map(Number);
-  const date = new Date(Date.UTC(year, month - 1, day));
-  return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
-}
+const mimeType = file => (/\.m?js$/.test(file) ? 'text/javascript' : file.endsWith('.css') ? 'text/css' : 'text/html');
 
-// Reads the due date and priority from a task line without changing the line itself.
-export function readTokens(text) {
-  const due = text.match(dueToken)?.[1];
-  const emoji = text.match(priorityToken)?.[1];
-  const title = text.replace(new RegExp(dueToken, 'gu'), '').replace(new RegExp(priorityToken, 'gu'), '').replace(/\s{2,}/g, ' ').trim();
-  return { title, due: due && validDate(due) ? due : null, priority: emoji ? priorityByEmoji[emoji] : null };
-}
-
-export function parseBoard(text) {
-  const lines = text.split('\n');
-  const clean = lines.map(line => line.replace(/\r$/, ''));
-  const start = clean.indexOf(startMarker);
-  const end = clean.indexOf(endMarker);
-  const done = clean.indexOf('## Done', end + 1);
-  if (start < 0 || end <= start || done <= end) {
-    throw fail('TODO.md needs its collector markers and a Done section.', 422);
-  }
-  const headings = {};
-  const tasks = [];
-  const ids = new Set();
-  let section = null;
-  let fence = null;
-  for (let i = start + 1; i < lines.length; i++) {
-    const line = clean[i];
-    const marker = line.match(/^\s*(`{3,}|~{3,})/);
-    if (marker) {
-      if (!fence) fence = marker[1];
-      else if (marker[1][0] === fence[0] && marker[1].length >= fence.length) fence = null;
-      continue;
-    }
-    if (fence) continue;
-    if (i === end) section = null;
-    const heading = line.match(/^## (.+?)\s*$/);
-    if (heading) {
-      const name = heading[1];
-      const after = i > end;
-      const allowed = after ? (name === 'Done' ? i === done : name === 'Rejected') : name !== 'Done' && name !== 'Rejected';
-      section = columns.includes(name) && allowed ? name : null;
-      if (section) {
-        if (headings[section] !== undefined) throw fail(`Repeated ${section} heading.`, 422);
-        headings[section] = i;
-      }
-      continue;
-    }
-    const match = section && line.match(checkbox);
-    if (!match) continue;
-    let blockEnd = i + 1;
-    while (blockEnd < lines.length) {
-      if (/^[\t ]+\S/.test(clean[blockEnd])) blockEnd++;
-      else if (!clean[blockEnd].trim() && /^[\t ]+\S/.test(clean[blockEnd + 1] || '')) blockEnd++;
-      else break;
-    }
-    const blockId = match[4].match(/\s+\^([A-Za-z0-9-]+)\s*$/);
-    const id = blockId?.[1] || null;
-    if (id && ids.has(id)) throw fail(`Repeated task ID: ${id}. Give each task a unique ID.`, 422);
-    if (id) ids.add(id);
-    const text = blockId ? match[4].slice(0, blockId.index) : match[4];
-    tasks.push({ id, line: i, end: blockEnd, text, ...readTokens(text), section, checked: match[2] === 'x' || match[2] === 'X' });
-    i = blockEnd - 1;
-  }
-  for (const name of ['Inbox', 'Backlog', 'Next', 'Now', 'In Progress', 'Done']) {
-    if (headings[name] === undefined) throw fail(`TODO.md needs a ${name} section.`, 422);
-  }
-  return {
-    revision: createHash('sha256').update(text).digest('hex'),
-    columns: columns.filter(name => headings[name] !== undefined),
-    tasks, headings, lines,
-  };
-}
-
-export function moveTask(text, { revision, id, line, target }) {
-  const board = parseBoard(text);
-  if (revision !== board.revision) throw fail('TODO.md changed. The board has refreshed. Please move the task again.', 409);
-  if (!columns.includes(target) || (target !== 'Rejected' && board.headings[target] === undefined)) throw fail('Choose a valid column.');
-  const task = board.tasks.find(item => id ? item.id === id : item.line === line);
-  if (!task) throw fail('Task not found. Refresh the board.', 404);
-  if (task.section === target && task.checked === (target === 'Done')) return text;
-  const block = board.lines.splice(task.line, task.end - task.line);
-  const ending = block[0].endsWith('\r') ? '\r' : '';
-  block[0] = block[0].replace(/\r$/, '').replace(checkbox, (_, prefix, state, suffix, body) =>
-    `${prefix}${target === 'Done' ? 'x' : target === 'Rejected' ? '-' : ' '}${suffix}${body}`) + ending;
-  if (board.headings[target] === undefined) {
-    // First rejection: add the Rejected heading at the end of the file.
-    const cr = text.includes('\r\n') ? '\r' : '';
-    while (board.lines.length && !board.lines.at(-1).trim()) board.lines.pop();
-    board.lines.push(cr, `## Rejected${cr}`, ...block, '');
-    return board.lines.join('\n');
-  }
-  let destination = board.headings[target] + 1;
-  if (task.line < destination) destination -= block.length;
-  board.lines.splice(destination, 0, ...block);
-  return board.lines.join('\n');
-}
-
-function findTask(board, { id, line }) {
-  const task = board.tasks.find(item => id ? item.id === id : item.line === line);
-  if (!task) throw fail('Task not found. Refresh the board.', 404);
-  return task;
-}
-
-// Changes a task's title, due date, and priority. Its ID, checkbox, and indented details stay as they are.
-// A task that has no ID is given one.
-export function editTask(text, { revision, id, line, title, due, priority }) {
-  if (typeof title !== 'string' || !title.trim() || title.length > 2000 || /[\r\n]/.test(title)) {
-    throw fail('Enter a task title on one line, with 1 to 2000 characters.');
-  }
-  if (/\s\^[A-Za-z0-9-]+\s*$/.test(title)) throw fail('Enter the title only. The board keeps the task ID.');
-  const typed = readTokens(title);
-  if (typed.due || typed.priority) throw fail('Use the due date and priority fields instead of typing them in the title.');
-  if (due != null && (typeof due !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(due) || !validDate(due))) throw fail('Choose a valid due date.');
-  if (priority != null && !priorityEmoji[priority]) throw fail('Choose high, medium, or low priority.');
-  const board = parseBoard(text);
-  if (revision !== board.revision) throw fail('TODO.md changed. The board has refreshed. Please try again.', 409);
-  const task = findTask(board, { id, line });
-  const first = board.lines[task.line];
-  const ending = first.endsWith('\r') ? '\r' : '';
-  const match = first.replace(/\r$/, '').match(checkbox);
-  const blockId = match[4].match(/\s+\^[A-Za-z0-9-]+\s*$/);
-  let suffix = blockId ? blockId[0] : '';
-  if (!blockId) {
-    // A task without an ID gets one the first time it is edited, so it can have notes and be found reliably.
-    let fresh;
-    do { fresh = `task-${randomBytes(4).toString('hex')}`; } while (board.tasks.some(item => item.id === fresh));
-    suffix = ` ^${fresh}`;
-  }
-  const body = [title.trim(), priority && priorityEmoji[priority], due && `📅 ${due}`].filter(Boolean).join(' ') + suffix;
-  board.lines[task.line] = `${match[1]}${match[2]}${match[3]}${body}${ending}`;
-  return board.lines.join('\n');
-}
-
-// Permanently removes one task and its indented details.
-export function deleteTask(text, { revision, id, line }) {
-  const board = parseBoard(text);
-  if (revision !== board.revision) throw fail('TODO.md changed. The board has refreshed. Please try again.', 409);
-  const task = findTask(board, { id, line });
-  board.lines.splice(task.line, task.end - task.line);
-  return board.lines.join('\n');
-}
-
-const archiveFile = 'TASK-ARCHIVE.md';
-
-function localDate(now) {
-  return new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(now);
-}
-
-// Adds a Tasks plugin completion date (✅) before the block ID, unless the task already has one.
-function withDoneDate(line, date) {
-  const ending = line.endsWith('\r') ? '\r' : '';
-  const bare = line.replace(/\r$/, '');
-  if (bare.includes('✅')) return line;
-  const id = bare.match(/\s+\^[A-Za-z0-9-]+\s*$/);
-  return (id ? `${bare.slice(0, id.index)} ✅ ${date}${id[0]}` : `${bare} ✅ ${date}`) + ending;
-}
-
-// Takes every Done task off the board. Returns the new file text and the removed task blocks.
-export function archiveDone(text, { revision }, now = new Date()) {
-  const board = parseBoard(text);
-  if (revision !== board.revision) throw fail('TODO.md changed. The board has refreshed. Please try again.', 409);
-  const done = board.tasks.filter(task => task.section === 'Done').sort((a, b) => a.line - b.line);
-  const date = localDate(now);
-  const blocks = done.map(task => {
-    const block = board.lines.slice(task.line, task.end);
-    block[0] = withDoneDate(block[0], date);
-    return block;
-  });
-  for (const task of [...done].reverse()) board.lines.splice(task.line, task.end - task.line);
-  return { text: done.length ? board.lines.join('\n') : text, blocks };
-}
-
-// Adds archived tasks to TASK-ARCHIVE.md at the vault root, under a dated heading.
-export function appendArchive(vaultRoot, blocks, now = new Date()) {
-  const path = join(vaultRoot, archiveFile);
-  let current = '';
-  try { current = readFileSync(path, 'utf8'); } catch (error) { if (error.code !== 'ENOENT') throw error; }
-  const newline = current.includes('\r\n') ? '\r\n' : '\n';
-  const prefix = current ? (current.endsWith('\n') ? newline : newline + newline) : `# Task archive${newline}${newline}`;
-  const body = blocks.map(block => block.map(line => line.replace(/\r$/, '')).join(newline)).join(newline);
-  appendFileSync(path, `${prefix}## Archived ${localDate(now)}${newline}${body}${newline}`, { encoding: 'utf8', mode: 0o600 });
-  return archiveFile;
-}
-
-// Permanently removes every task under the Rejected heading.
-export function clearRejected(text, { revision }) {
-  const board = parseBoard(text);
-  if (revision !== board.revision) throw fail('TODO.md changed. The board has refreshed. Please try again.', 409);
-  const rejected = board.tasks.filter(task => task.section === 'Rejected').sort((a, b) => b.line - a.line);
-  for (const task of rejected) board.lines.splice(task.line, task.end - task.line);
-  return rejected.length ? board.lines.join('\n') : text;
-}
-
-export function createTask(text, { revision, id, title, due, priority }) {
-  if (typeof title !== 'string' || !title.trim() || title.length > 2000 || /[\r\n]/.test(title)) {
-    throw fail('Enter a task title on one line, with 1 to 2000 characters.');
-  }
-  if (/\s\^[A-Za-z0-9-]+\s*$/.test(title)) throw fail('Enter the title only. The board adds a task ID.');
-  if (typeof id !== 'string' || !/^task-[a-f0-9]{8}$/.test(id)) throw fail('Invalid new task ID.');
-  if (due != null && (typeof due !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(due) || !validDate(due))) throw fail('Choose a valid due date.');
-  if (priority != null && !priorityEmoji[priority]) throw fail('Choose high, medium, or low priority.');
-  title = [title.trim(), priority && priorityEmoji[priority], due && `📅 ${due}`].filter(Boolean).join(' ');
-  const board = parseBoard(text);
-  const existing = board.tasks.find(task => task.id === id);
-  if (existing) {
-    if (existing.text !== title) throw fail('This task ID is already in use. Close this form and start a new task.', 409);
-    return text;
-  }
-  if (new RegExp(`\\^${id}\\s*$`, 'm').test(text)) throw fail('This task ID is already in use. Close this form and start a new task.', 409);
-  if (revision !== board.revision) throw fail('TODO.md changed. Please try creating the task again.', 409);
-  const ending = text.includes('\r\n') ? '\r' : '';
-  board.lines.splice(board.headings.Inbox + 1, 0, `- [ ] ${title} ^${id}${ending}`);
-  return board.lines.join('\n');
-}
+// Changes to TODO.md. Each takes the file text and the request, and returns the new file text.
+const taskChanges = {
+  '/api/move': moveTask,
+  '/api/tasks': createTask,
+  '/api/edit': editTask,
+  '/api/delete': deleteTask,
+  '/api/clear-rejected': clearRejected,
+};
+const archiveRoute = '/api/archive-done';
 
 function publicBoard(text, vaultRoot) {
   const { revision, columns, tasks } = parseBoard(text);
   return { revision, columns, tasks, vault: basename(vaultRoot) };
 }
 
-const dateFile = /^\d{4}-\d{2}-\d{2}\.md$/;
-const noteHeading = /^- (\d{2}:\d{2}) — Task note: \[\[TODO#\^([A-Za-z0-9-]+)\]\]\s*$/;
-const noteMarker = /^ {2}<!-- task-note:([a-f0-9-]{36}):([a-f0-9]{64}) -->$/;
-const fallbackFolder = 'Daily Notes';
-
-// Returns a folder inside the vault ('' means the vault root), or null if the path would leave the vault.
-function cleanFolder(vaultRoot, value) {
-  const folder = String(value ?? '').trim().replace(/^\/+|\/+$/g, '');
-  const root = resolve(vaultRoot);
-  const full = resolve(root, folder);
-  return full === root || full.startsWith(root + sep) ? folder : null;
-}
-
-// Works out where task notes are saved: --notes-folder, else the vault's Obsidian daily notes
-// setting, else "Daily Notes". Only the YYYY-MM-DD date format is supported.
-export function notesSettings(vaultRoot, override) {
-  if (override) {
-    const folder = cleanFolder(vaultRoot, override);
-    if (folder === null) throw new Error(`The notes folder must be inside your vault: ${override}`);
-    return { folder };
+// Reads a request body that must be small, valid JSON.
+async function readJson(request) {
+  if (request.headers['content-type'] !== 'application/json') throw fail('Send JSON only.', 415);
+  const chunks = [];
+  let size = 0;
+  for await (const chunk of request) {
+    size += chunk.length;
+    if (size > MAX_BODY_BYTES) throw fail('Request is too large.', 413);
+    chunks.push(chunk);
   }
-  let config = null;
-  try { config = JSON.parse(readFileSync(join(vaultRoot, '.obsidian', 'daily-notes.json'), 'utf8')); } catch { /* no settings file */ }
-  if (config) {
-    const format = config.format || 'YYYY-MM-DD';
-    if (format !== 'YYYY-MM-DD') {
-      return { folder: fallbackFolder, message: `Your daily notes use the date format ${format}, which the board cannot read yet. Task notes go to ${fallbackFolder}/ instead.` };
-    }
-    const folder = cleanFolder(vaultRoot, config.folder);
-    if (folder !== null) return { folder };
-    return { folder: fallbackFolder, message: `Your daily notes folder is outside the vault. Task notes go to ${fallbackFolder}/ instead.` };
-  }
-  return { folder: fallbackFolder };
-}
-
-const notePath = (folder, name) => (folder ? `${folder}/${name}` : name);
-
-export function appendTaskNote(vaultRoot, { id, text, requestId } = {}, now = new Date(), folder = fallbackFolder) {
-  if (typeof id !== 'string' || !/^[A-Za-z0-9-]+$/.test(id)) throw fail('Choose a task with a stable ID.');
-  if (typeof text !== 'string' || !text.trim() || text.length > 8000) throw fail('Enter a note with 1 to 8000 characters.');
-  if (typeof requestId !== 'string' || !/^[a-f0-9-]{36}$/.test(requestId)) throw fail('Invalid note save ID.');
-  const board = parseBoard(readFileSync(join(vaultRoot, 'TODO.md'), 'utf8'));
-  if (!board.tasks.some(task => task.id === id)) throw fail('Task not found. Refresh the board.', 404);
-  const date = new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(now);
-  const time = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false }).format(now);
-  const file = notePath(folder, `${date}.md`);
-  const path = join(vaultRoot, file);
-  let current = '';
-  try { current = readFileSync(path, 'utf8'); } catch (error) { if (error.code !== 'ENOENT') throw error; }
-  const digest = createHash('sha256').update(`${id}\0${text}`).digest('hex');
-  const marker = `<!-- task-note:${requestId}:${digest} -->`;
-  if (current.includes(`<!-- task-note:${requestId}:`)) {
-    if (!current.includes(marker)) throw fail('This note was already saved with different text. Start a new note for the change.', 409);
-    return { file, taskId: id, saved: true };
-  }
-  const newline = current.includes('\r\n') ? '\r\n' : '\n';
-  const content = text.replace(/\r\n?/g, '\n').split('\n').map(line => `  ${line}`).join(newline);
-  const entry = `- ${time} — Task note: [[TODO#^${id}]]${newline}${content}${newline}  ${marker}${newline}`;
-  mkdirSync(join(vaultRoot, folder), { recursive: true });
-  appendFileSync(path, `${current ? newline + newline : ''}${entry}`, { encoding: 'utf8', mode: 0o600 });
-  return { file, taskId: id, saved: true };
-}
-
-// Finds every note that links to a task. Notes the board wrote carry a noteId and can be edited or deleted.
-// Notes you wrote by hand are listed too, but have no noteId and stay read-only.
-function scanNotes(vaultRoot, folder) {
-  let files;
-  try { files = readdirSync(join(vaultRoot, folder), { withFileTypes: true }); }
-  catch (error) { if (error.code === 'ENOENT') return []; throw error; }
-  const notes = [];
-  for (const file of files.filter(file => file.isFile() && dateFile.test(file.name))) {
-    const lines = readFileSync(join(vaultRoot, folder, file.name), 'utf8').split(/\r?\n/);
-    let fence = null;
-    for (let i = 0; i < lines.length; i++) {
-      const marker = lines[i].match(/^\s*(`{3,}|~{3,})/);
-      if (marker) {
-        if (!fence) fence = marker[1];
-        else if (marker[1][0] === fence[0] && marker[1].length >= fence.length) fence = null;
-        continue;
-      }
-      if (fence) continue;
-      const ids = [...new Set([...lines[i].matchAll(/\[\[TODO(?:\.md)?#\^([A-Za-z0-9-]+)(?:\|[^\]]*)?\]\]/g)].map(match => match[1]))];
-      if (!ids.length) continue;
-      const heading = lines[i].match(noteHeading);
-      const content = heading ? [] : [lines[i]];
-      let end = i + 1;
-      while (end < lines.length && /^  /.test(lines[end])) {
-        if (noteMarker.test(lines[end])) break;
-        content.push(heading ? lines[end].slice(2) : lines[end]);
-        end++;
-      }
-      const noteId = heading && end < lines.length ? lines[end].match(noteMarker)?.[1] || null : null;
-      if (!heading && !/^\s*(?:[-*+]|\d+[.)])\s/.test(lines[i])) {
-        while (end < lines.length && lines[end].trim() && !/^\s*(?:#{1,6}\s|[-*+]\s|\d+[.)]\s|`{3,}|~{3,})/.test(lines[end])) {
-          content.push(lines[end++]);
-        }
-      }
-      for (const taskId of ids) {
-        notes.push({ taskId, noteId, file: notePath(folder, file.name), date: file.name.slice(0, -3), time: heading?.[1] || null, text: content.join('\n'), line: i + 1 });
-      }
-      i = end - 1;
-    }
-  }
-  return notes;
-}
-
-export function readTaskNotes(vaultRoot, id, folder = fallbackFolder) {
-  if (typeof id !== 'string' || !/^[A-Za-z0-9-]+$/.test(id)) throw fail('Choose a task with a stable ID.');
-  const board = parseBoard(readFileSync(join(vaultRoot, 'TODO.md'), 'utf8'));
-  if (!board.tasks.some(task => task.id === id)) throw fail('Task not found. Refresh the board.', 404);
-  return scanNotes(vaultRoot, folder)
-    .filter(note => note.taskId === id)
-    .map(({ taskId, ...note }) => note)
-    .sort((a, b) => b.date.localeCompare(a.date) || b.line - a.line);
-}
-
-// How many notes each task has, for the count on its card.
-export function countTaskNotes(vaultRoot, folder = fallbackFolder) {
-  const counts = {};
-  for (const note of scanNotes(vaultRoot, folder)) counts[note.taskId] = (counts[note.taskId] || 0) + 1;
-  return counts;
-}
-
-// Replaces a file only if nobody changed it since it was read.
-function replaceFile(path, original, updated) {
-  const temporary = `${path}.board-${randomBytes(8).toString('hex')}.tmp`;
-  try {
-    writeFileSync(temporary, updated, { flag: 'wx', mode: statSync(path).mode });
-    if (readFileSync(path, 'utf8') !== original) throw fail('That daily note changed. Refresh the notes and try again.', 409);
-    renameSync(temporary, path);
-  } finally {
-    try { unlinkSync(temporary); } catch (error) { if (error.code !== 'ENOENT') throw error; }
-  }
-}
-
-// Finds a note the board wrote, by its hidden marker. Notes edited by hand around the marker are refused.
-function locateNote(vaultRoot, noteId, folder) {
-  if (typeof noteId !== 'string' || !/^[a-f0-9-]{36}$/.test(noteId)) throw fail('Invalid note.');
-  let files;
-  try { files = readdirSync(join(vaultRoot, folder), { withFileTypes: true }); }
-  catch (error) { if (error.code === 'ENOENT') throw fail('Note not found. Refresh the notes.', 404); throw error; }
-  for (const file of files.filter(file => file.isFile() && dateFile.test(file.name))) {
-    const path = join(vaultRoot, folder, file.name);
-    const original = readFileSync(path, 'utf8');
-    const lines = original.split('\n');
-    const marker = lines.findIndex(line => line.replace(/\r$/, '').match(noteMarker)?.[1] === noteId);
-    if (marker < 0) continue;
-    let heading = marker - 1;
-    while (heading >= 0 && /^ {2}/.test(lines[heading])) heading--;
-    const parsed = heading >= 0 && lines[heading].replace(/\r$/, '').match(noteHeading);
-    if (!parsed) throw fail('This note was changed outside the board, so the board will not edit it. Change it in Obsidian.', 409);
-    return { path, original, lines, heading, marker, taskId: parsed[2], cr: lines[marker].endsWith('\r') ? '\r' : '' };
-  }
-  throw fail('Note not found. Refresh the notes.', 404);
-}
-
-export function editTaskNote(vaultRoot, { noteId, text } = {}, folder = fallbackFolder) {
-  if (typeof text !== 'string' || !text.trim() || text.length > 8000) throw fail('Enter a note with 1 to 8000 characters.');
-  const found = locateNote(vaultRoot, noteId, folder);
-  const digest = createHash('sha256').update(`${found.taskId}\0${text}`).digest('hex');
-  const content = text.replace(/\r\n?/g, '\n').split('\n').map(line => `  ${line}${found.cr}`);
-  const lines = [...found.lines];
-  lines.splice(found.heading + 1, found.marker - found.heading, ...content, `  <!-- task-note:${noteId}:${digest} -->${found.cr}`);
-  replaceFile(found.path, found.original, lines.join('\n'));
-  return { saved: true };
-}
-
-export function deleteTaskNote(vaultRoot, { noteId } = {}, folder = fallbackFolder) {
-  const found = locateNote(vaultRoot, noteId, folder);
-  const lines = [...found.lines];
-  let start = found.heading;
-  let end = found.marker + 1;
-  while (end < lines.length && !lines[end].trim()) end++;
-  if (end === lines.length) while (start > 0 && !lines[start - 1].trim()) start--;
-  lines.splice(start, end - start);
-  if (lines.length && lines.at(-1) !== '') lines.push('');
-  replaceFile(found.path, found.original, lines.join('\n'));
-  return { deleted: true };
+  try { return JSON.parse(Buffer.concat(chunks).toString('utf8')); } catch { throw fail('Invalid JSON.'); }
 }
 
 export function createBoardServer(vaultRoot, { notesFolder } = {}) {
-  const note = join(vaultRoot, 'TODO.md');
+  const todoPath = join(vaultRoot, 'TODO.md');
   const folder = notesFolder ?? notesSettings(vaultRoot).folder;
+
+  const noteChanges = {
+    '/api/notes': change => appendTaskNote(vaultRoot, change, new Date(), folder),
+    '/api/notes/edit': change => editTaskNote(vaultRoot, change, folder),
+    '/api/notes/delete': change => deleteTaskNote(vaultRoot, change, folder),
+  };
+
+  // Applies one change to TODO.md and saves it. Returns the new text.
+  function changeTodo(url, change) {
+    const original = readFileSync(todoPath, 'utf8');
+    let updated;
+    if (url === archiveRoute) {
+      // The archive is written first, so a failure can only duplicate a task, never lose one.
+      const result = archiveDone(original, change);
+      if (result.blocks.length) appendArchive(vaultRoot, result.blocks);
+      updated = result.text;
+    } else {
+      updated = taskChanges[url](original, change);
+    }
+    if (updated !== original) writeIfUnchanged(todoPath, original, updated, 'TODO.md changed. Refresh the board and try again.');
+    return updated;
+  }
+
   return http.createServer(async (request, response) => {
     const address = `127.0.0.1:${request.socket.localPort}`;
     const origin = `http://${address}`;
     const send = (status, body, type = 'application/json; charset=utf-8') => {
-      response.writeHead(status, {
-        'Content-Type': type, 'Cache-Control': 'no-store',
-        'X-Content-Type-Options': 'nosniff',
-        'Content-Security-Policy': "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'",
-      });
+      response.writeHead(status, { 'Content-Type': type, ...securityHeaders });
       response.end(type.startsWith('application/json') ? JSON.stringify(body) : body);
     };
     try {
+      // Only this computer's own page may talk to the board. This stops other websites and DNS tricks.
       if (request.headers.host !== address || (request.headers.origin && request.headers.origin !== origin)) {
         throw fail('This board accepts local requests only.', 403);
       }
-      if (request.method === 'GET' && request.url === '/api/board') {
-        send(200, publicBoard(readFileSync(note, 'utf8'), vaultRoot));
-      } else if (request.method === 'GET' && request.url.startsWith('/api/notes?')) {
-        const id = new URL(request.url, origin).searchParams.get('id');
-        send(200, { notes: readTaskNotes(vaultRoot, id, folder) });
-      } else if (request.method === 'GET' && request.url === '/api/note-counts') {
-        send(200, { counts: countTaskNotes(vaultRoot, folder) });
-      } else if (request.method === 'POST' && ['/api/move', '/api/notes', '/api/notes/edit', '/api/notes/delete', '/api/tasks', '/api/edit', '/api/delete', '/api/clear-rejected', '/api/archive-done'].includes(request.url)) {
-        if (request.headers['content-type'] !== 'application/json') throw fail('Send JSON only.', 415);
-        const chunks = [];
-        let size = 0;
-        for await (const chunk of request) {
-          size += chunk.length;
-          if (size > 40000) throw fail('Request is too large.', 413);
-          chunks.push(chunk);
+      const { method, url } = request;
+
+      if (method === 'GET') {
+        if (url === '/api/board') return send(200, publicBoard(readFileSync(todoPath, 'utf8'), vaultRoot));
+        if (url === '/api/note-counts') return send(200, { counts: countTaskNotes(vaultRoot, folder) });
+        if (url.startsWith('/api/notes?')) {
+          const id = new URL(url, origin).searchParams.get('id');
+          return send(200, { notes: readTaskNotes(vaultRoot, id, folder) });
         }
-        let change;
-        try { change = JSON.parse(Buffer.concat(chunks).toString('utf8')); } catch { throw fail('Invalid JSON.'); }
-        if (request.url.startsWith('/api/notes')) {
-          if (!change || typeof change !== 'object') throw fail('Invalid note.');
-          const action = { '/api/notes': () => appendTaskNote(vaultRoot, change, new Date(), folder), '/api/notes/edit': () => editTaskNote(vaultRoot, change, folder), '/api/notes/delete': () => deleteTaskNote(vaultRoot, change, folder) }[request.url];
-          send(200, action());
-          return;
-        }
+        const file = url === '/' ? 'index.html' : pageFiles.find(name => `/${name}` === url);
+        if (file) return send(200, readFileSync(join(directory, file)), `${mimeType(file)}; charset=utf-8`);
+      }
+
+      if (method === 'POST' && Object.hasOwn(noteChanges, url)) {
+        const change = await readJson(request);
+        if (!change || typeof change !== 'object') throw fail('Invalid note.');
+        return send(200, noteChanges[url](change));
+      }
+
+      if (method === 'POST' && (Object.hasOwn(taskChanges, url) || url === archiveRoute)) {
+        const change = await readJson(request);
         if (!change || typeof change !== 'object') throw fail('Invalid task request.');
-        if (request.url === '/api/move' && !(typeof change.id === 'string' || Number.isInteger(change.line))) throw fail('Invalid move.');
-        const original = readFileSync(note, 'utf8');
-        let updated;
-        if (request.url === '/api/archive-done') {
-          // The archive is written first, so a failure can only duplicate a task, never lose one.
-          const result = archiveDone(original, change);
-          if (result.blocks.length) appendArchive(vaultRoot, result.blocks);
-          updated = result.text;
-        } else {
-          updated = ({ '/api/tasks': createTask, '/api/edit': editTask, '/api/delete': deleteTask, '/api/clear-rejected': clearRejected }[request.url] || moveTask)(original, change);
-        }
-        if (updated !== original) {
-          const temporary = `${note}.board-${randomBytes(8).toString('hex')}.tmp`;
-          try {
-            writeFileSync(temporary, updated, { flag: 'wx', mode: statSync(note).mode });
-            if (readFileSync(note, 'utf8') !== original) throw fail('TODO.md changed. Refresh the board and try again.', 409);
-            renameSync(temporary, note);
-          } finally {
-            try { unlinkSync(temporary); } catch (error) { if (error.code !== 'ENOENT') throw error; }
-          }
-        }
-        send(200, publicBoard(updated, vaultRoot));
-      } else if (request.method === 'GET' && ['/', '/app.js', '/search.mjs', '/calendar.mjs', '/theme.js', '/style.css'].includes(request.url)) {
-        const file = request.url === '/' ? 'index.html' : request.url.slice(1);
-        const type = /\.m?js$/.test(file) ? 'text/javascript' : file.endsWith('.css') ? 'text/css' : 'text/html';
-        send(200, readFileSync(join(directory, file)), `${type}; charset=utf-8`);
-      } else send(404, { error: 'Not found.' });
+        if (url === '/api/move' && !(typeof change.id === 'string' || Number.isInteger(change.line))) throw fail('Invalid move.');
+        return send(200, publicBoard(changeTodo(url, change), vaultRoot));
+      }
+
+      throw fail('Not found.', 404);
     } catch (error) {
       send(error.status || 500, { error: error.status ? error.message : 'Cannot read or save TODO.md. Check the file and try again.' });
     }
   });
 }
 
-if (process.argv[1] && realpathSync(process.argv[1]) === fileURLToPath(import.meta.url)) {
+// Starts the board: bash start.sh ["/path/to/vault"] [--notes-folder name]
+function main() {
   const args = process.argv.slice(2);
   const flag = args.indexOf('--notes-folder');
   const notesOverride = flag >= 0 ? args.splice(flag, 2)[1] : undefined;
@@ -525,3 +149,5 @@ if (process.argv[1] && realpathSync(process.argv[1]) === fileURLToPath(import.me
     browser.unref();
   });
 }
+
+if (process.argv[1] && realpathSync(process.argv[1]) === fileURLToPath(import.meta.url)) main();

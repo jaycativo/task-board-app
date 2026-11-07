@@ -119,6 +119,6 @@ of tests (39 tests). No dependencies. Five skills.
 
 - [`AGENTS.md`](../AGENTS.md) and [`.agents/skills/`](../.agents/skills): the
   harness itself.
-- [`task-board/server.mjs`](../task-board/server.mjs): the whole server, in one file.
+- [`task-board/board.mjs`](../task-board/board.mjs): the rules for `TODO.md`, as plain functions.
 - [`README.md`](../README.md): how to use the board, and a prompt for bringing
   your own tasks over.
