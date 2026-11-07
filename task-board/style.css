@@ -3,7 +3,7 @@
   --ink: #3B2A1E; --ink-soft: #6B5238; --page: #EAD7B8; --panel: #FFFBF3; --card: #FFFFFF;
   --orange: #FF8A3D; --butter: #FFE08A; --sage: #CFE4BF; --peach: #FFD9C9; --tan: #E8DCC8;
   --done-bg: #F1F2F4; --done-ink: #6A727C;
-  --lilac: #DCCFF2; --sand: #E8DCC8; --sky: #BFDDF2; --rose: #F4B6C6; --teal: #A5DCD3; --slate: #CBD0D6; --tab-ink: #3B2A1E;
+  --lilac: #DCCFF2; --sand: #E8DCC8; --sky: #BFDDF2; --rose: #F4B6C6; --teal: #A5DCD3; --slate: #CBD0D6; --charcoal: #3B2A1E; --tab-ink: #3B2A1E;
   --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-size: 15px; color: var(--ink); background: var(--page);
 }
@@ -12,7 +12,7 @@
     --ink: #F6E9D6; --ink-soft: #CDB89C; --page: #241A13; --panel: #33261C; --card: #3F3024;
     --orange: #FF8A3D; --butter: #E6C25A; --sage: #7FA06B; --peach: #C9775A; --tan: #5A4838;
     --done-bg: #2F3338; --done-ink: #A9B1BA;
-    --lilac: #6F5C94; --sand: #5A4838; --sky: #3F6E8F; --rose: #9C4F66; --teal: #2F7F73; --slate: #565D66; --tab-ink: #FFF6E9;
+    --lilac: #6F5C94; --sand: #5A4838; --sky: #3F6E8F; --rose: #9C4F66; --teal: #2F7F73; --slate: #565D66; --charcoal: #7A6A5C; --tab-ink: #FFF6E9;
   }
 }
 * { box-sizing: border-box; }
@@ -54,7 +54,8 @@ summary { cursor: pointer; }
 .column-now { --accent: var(--rose); }
 .column-in-progress { --accent: var(--teal); }
 .column-done { --accent: var(--slate); }
-.column-rejected { --accent: var(--slate); }
+.column-rejected { --accent: var(--charcoal); }
+.column-rejected .column-heading { color: #FFF6E9; }
 .column-heading { display: flex; align-items: center; gap: 8px; margin: -8px -8px 8px; padding: 7px 10px; background: var(--accent); border-bottom: 1.5px solid var(--ink); border-radius: 6px 6px 0 0; color: var(--tab-ink); }
 .card.rejected { background: transparent; border-style: dashed; color: var(--done-ink); }
 .card.rejected .task-title { text-decoration: line-through; }
