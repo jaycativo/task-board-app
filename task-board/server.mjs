@@ -159,7 +159,7 @@ export function deleteTask(text, { revision, id, line }) {
   return board.lines.join('\n');
 }
 
-const archiveFile = 'Task Archive.md';
+const archiveFile = 'TASK-ARCHIVE.md';
 
 function localDate(now) {
   return new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(now);
@@ -189,7 +189,7 @@ export function archiveDone(text, { revision }, now = new Date()) {
   return { text: done.length ? board.lines.join('\n') : text, blocks };
 }
 
-// Adds archived tasks to Task Archive.md at the vault root, under a dated heading.
+// Adds archived tasks to TASK-ARCHIVE.md at the vault root, under a dated heading.
 export function appendArchive(vaultRoot, blocks, now = new Date()) {
   const path = join(vaultRoot, archiveFile);
   let current = '';

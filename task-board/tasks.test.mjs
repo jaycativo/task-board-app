@@ -169,7 +169,7 @@ test('the archive file gets a title once and a dated section each time', () => {
     const now = new Date(2026, 10, 7, 12);
     appendArchive(vault, [['- [x] One ✅ 2026-11-07 ^task-one']], now);
     appendArchive(vault, [['- [x] Two ✅ 2026-11-07 ^task-two', '  - detail']], now);
-    const archive = readFile(join(vault, 'Task Archive.md'), 'utf8');
+    const archive = readFile(join(vault, 'TASK-ARCHIVE.md'), 'utf8');
     assert.equal(archive.match(/# Task archive/g).length, 1);
     assert.equal(archive.match(/## Archived 2026-11-07/g).length, 2);
     assert.match(archive, /- \[x\] One ✅ 2026-11-07 \^task-one\n\n## Archived 2026-11-07\n- \[x\] Two[^\n]*\n  - detail\n$/);

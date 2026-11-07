@@ -45,7 +45,7 @@ node --test task-board/*.test.mjs  # all tests
   details, and unknown tokens stay. Editing and deleting use a native confirm
   for anything permanent. If the file changed under an open edit, the dialog
   closes instead of retrying, so a stale line number can never edit the wrong task.
-- Archive all moves Done tasks to `Task Archive.md` (root of the vault) with a
+- Archive all moves Done tasks to `TASK-ARCHIVE.md` (root of the vault) with a
   `✅` date. The archive is written before `TODO.md`, so a failure can only
   duplicate a task, never lose one.
 - Notes live in the vault's Obsidian daily notes folder (`.obsidian/daily-notes.json`),

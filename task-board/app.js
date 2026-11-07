@@ -412,8 +412,8 @@ function deleteRejected(count) {
 function archiveDoneTasks(count) {
   if (busy) return;
   const what = count === 1 ? '1 done task' : `${count} done tasks`;
-  if (!confirm(`Archive ${what}? They move to Task Archive.md in your vault and leave this board.`)) return;
-  return save('/api/archive-done', {}, `Archived ${what} to Task Archive.md`);
+  if (!confirm(`Archive ${what}? They move to TASK-ARCHIVE.md in your vault and leave this board.`)) return;
+  return save('/api/archive-done', {}, `Archived ${what} to TASK-ARCHIVE.md`);
 }
 
 async function save(url, body, done) {

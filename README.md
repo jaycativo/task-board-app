@@ -40,7 +40,7 @@ convert existing files.
   due date, and priority, or delete the task. Indented details under the task
   and any other tokens on the line (like a repeat rule) are kept.
 - **Archive finished work.** The Archive all button on Done moves every done
-  task to `Task Archive.md` at the vault root, under a dated heading, and takes
+  task to `TASK-ARCHIVE.md` at the vault root, under a dated heading, and takes
   them off the board. The archive keeps each task's details and adds a `✅`
   completion date if it has none.
 - **Due dates and priorities.** Cards show a friendly due label (`today`,
@@ -117,7 +117,7 @@ with Obsidian. Avoid saving the same file in both apps at the same moment.
 The server listens on `127.0.0.1` only, on a random port, so other devices on
 your network cannot reach it. It checks the Host and Origin of every request,
 accepts only JSON for changes, and sends a strict content security policy. It
-reads and writes only `TODO.md`, `Task Archive.md`, and the notes folder. Do not expose its port
+reads and writes only `TODO.md`, `TASK-ARCHIVE.md`, and the notes folder. Do not expose its port
 with a tunnel or port forwarding.
 
 ## Tests
