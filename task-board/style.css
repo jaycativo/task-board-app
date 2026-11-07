@@ -7,14 +7,23 @@
   --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-size: 15px; color: var(--ink); background: var(--page);
 }
+/* Dark colours: used when the system is dark (unless Light is chosen in the footer), or when Dark is chosen. */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --ink: #F6E9D6; --ink-soft: #CDB89C; --page: #241A13; --panel: #33261C; --card: #3F3024;
     --orange: #FF8A3D; --butter: #E6C25A; --sage: #7FA06B; --peach: #C9775A; --tan: #5A4838;
     --done-bg: #2F3338; --done-ink: #A9B1BA;
     --lilac: #6F5C94; --sand: #5A4838; --sky: #3F6E8F; --rose: #9C4F66; --teal: #2F7F73; --slate: #565D66; --charcoal: #7A6A5C; --tab-ink: #FFF6E9;
   }
 }
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --ink: #F6E9D6; --ink-soft: #CDB89C; --page: #241A13; --panel: #33261C; --card: #3F3024;
+  --orange: #FF8A3D; --butter: #E6C25A; --sage: #7FA06B; --peach: #C9775A; --tan: #5A4838;
+  --done-bg: #2F3338; --done-ink: #A9B1BA;
+  --lilac: #6F5C94; --sand: #5A4838; --sky: #3F6E8F; --rose: #9C4F66; --teal: #2F7F73; --slate: #565D66; --charcoal: #7A6A5C; --tab-ink: #FFF6E9;
+}
+:root[data-theme="light"] { color-scheme: light; }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--page); }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
@@ -178,3 +187,6 @@ footer { display: flex; justify-content: space-between; gap: 16px; color: var(--
 .cal-foot { display: flex; gap: 6px; margin-top: 10px; }
 .cal-done { margin-left: auto; background: var(--orange); color: #3B2A1E; }
 .cal-done:hover { background: var(--butter); }
+
+.theme { display: inline-flex; vertical-align: middle; margin-right: 12px; }
+.theme button { padding: 3px 8px; font-size: 11px; }

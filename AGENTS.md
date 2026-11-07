@@ -33,6 +33,7 @@ node --test task-board/*.test.mjs  # all tests (list the files; a directory path
 - `task-board/app.js`: the whole frontend. `search.mjs` holds search and sorting,
   `calendar.mjs` the date picker's date logic.
 - `task-board/style.css`: design tokens at the top.
+- `task-board/theme.js`: applies the saved light or dark choice before the page is drawn.
 - `task-board/*.test.mjs`: tests for server logic, search and sorting, notes, dates.
 
 ## Skills
@@ -66,6 +67,6 @@ Claude Code finds them through the `.claude/skills` link.
 Built: the look, due dates and priorities, colour-blind palette, the Rejected
 panel (Move, then Rejected; restore; delete all), archive, edit and delete, the
 Move menu, a styled calendar and priority control, the notes drawer, sorting,
-light and dark mode, README screenshots.
+light and dark mode with an Auto, Light, Dark switch, README screenshots.
 
 Licence: MIT. Phone width is not a priority.

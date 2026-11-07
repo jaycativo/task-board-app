@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Good work, friend · Task board</title>
   <link rel="stylesheet" href="/style.css">
+  <script src="/theme.js"></script>
   <script src="/app.js" type="module"></script>
 </head>
 <body>
@@ -36,7 +37,7 @@
     <div id="board" aria-label="Task board"></div>
     <div id="rejected" aria-label="Rejected tasks"></div>
   </main>
-  <footer><span><span class="status-dot"></span> Linked to TODO.md</span><span><button id="palette" type="button" aria-pressed="false">Colour-blind palette: off</button> Changes stay in your vault · checks for updates every 5 seconds</span></footer>
+  <footer><span><span class="status-dot"></span> Linked to TODO.md</span><span><span class="seg theme" role="group" aria-label="Colour theme"><button type="button" data-theme-choice="auto" aria-pressed="true">Auto</button><button type="button" data-theme-choice="light" aria-pressed="false">Light</button><button type="button" data-theme-choice="dark" aria-pressed="false">Dark</button></span><button id="palette" type="button" aria-pressed="false">Colour-blind palette: off</button> Changes stay in your vault · checks for updates every 5 seconds</span></footer>
   <dialog id="task-dialog" aria-labelledby="task-heading">
     <form id="task-form">
       <h2 id="task-heading">New task</h2>

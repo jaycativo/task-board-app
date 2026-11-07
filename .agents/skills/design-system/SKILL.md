@@ -30,8 +30,15 @@ Playful, but serious about the work. Warm colour, firm outlines, plain words.
 - Priority is never colour alone. It always shows a shape and a word:
   `▲ high`, `◆ med`, `▼ low`. A footer toggle swaps in a colour-blind palette
   (blue, yellow, grey) through `data-palette="cb"`, remembered in localStorage.
-- Dark mode redefines the variables under `prefers-color-scheme: dark`. Column
-  tabs use `--tab-ink` so their text stays readable on both.
+- Dark mode redefines the variables. A footer switch (Auto, Light, Dark) can
+  override the system, so the dark colours live in **two places in `style.css`
+  that must stay in sync**: `:root:not([data-theme="light"])` inside
+  `prefers-color-scheme: dark` (Auto on a dark system), and `:root[data-theme="dark"]`.
+  The choice is the `data-theme` attribute on `<html>`, saved in localStorage as
+  `theme`. `theme.js` is a classic script in the head that sets the attribute
+  before the page is drawn, so there is no flash of the wrong colours (the
+  security headers forbid inline scripts, so it has to be a file).
+  Column tabs use `--tab-ink` so their text stays readable on both.
 
 ## Controls
 

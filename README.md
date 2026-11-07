@@ -9,7 +9,8 @@ and the file changes. Edit the file in Obsidian, and the board follows.
 
 ![The task board: Inbox on top, then Later, Next, Now, In progress, and Done, with due dates, priorities, and note counts on the cards](docs/screenshot.png)
 
-The board follows your system's light or dark setting.
+The board follows your system's light or dark setting. A small switch in the
+footer (Auto, Light, Dark) overrides it, and remembers your choice.
 
 <details>
 <summary>See dark mode</summary>

@@ -774,6 +774,19 @@ document.querySelector('#note-form').addEventListener('submit', async event => {
     noteText.readOnly = false;
   }
 });
+function setTheme(choice) {
+  const theme = choice === 'light' || choice === 'dark' ? choice : 'auto';
+  if (theme === 'auto') delete document.documentElement.dataset.theme;
+  else document.documentElement.dataset.theme = theme;
+  document.querySelectorAll('[data-theme-choice]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.themeChoice === theme)));
+  return theme;
+}
+try { setTheme(localStorage.getItem('theme')); } catch { setTheme('auto'); }
+document.querySelectorAll('[data-theme-choice]').forEach(button => button.addEventListener('click', () => {
+  const theme = setTheme(button.dataset.themeChoice);
+  try { localStorage.setItem('theme', theme); } catch { /* the choice just is not remembered */ }
+}));
+
 function setPalette(colourBlind) {
   document.documentElement.dataset.palette = colourBlind ? 'cb' : '';
   paletteButton.setAttribute('aria-pressed', String(colourBlind));
