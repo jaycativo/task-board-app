@@ -32,6 +32,7 @@ let board;
 let busy = false;
 let dragging = false;
 let noteTask;
+let noteCounts = {};
 let noteRequestId;
 let noteSaving = false;
 let taskSaving = false;
@@ -68,17 +69,90 @@ async function loadNoteHistory(id) {
     if (!noteDialog.open || noteTask.id !== id) return;
     notesList.replaceChildren();
     if (!result.notes.length) notesList.append(element('p', 'note-help', 'No notes for this task yet.'));
-    for (const note of result.notes) {
-      const entry = element('article', 'saved-note');
-      const source = element('a', 'note-link', `${note.date}${note.time ? ` · ${note.time}` : ''}`);
-      source.href = noteLink(note.file.replace(/\.md$/, ''));
-      const content = element('p', 'saved-note-text');
-      appendText(content, note.text);
-      entry.append(source, content);
-      notesList.append(entry);
-    }
+    for (const note of result.notes) notesList.append(noteEntry(note, id));
   } catch (error) {
     if (noteDialog.open && noteTask.id === id) notesList.textContent = `Cannot load notes: ${error.message}`;
+  }
+}
+
+const post = (url, body) => request(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+
+async function loadNoteCounts() {
+  try { noteCounts = (await request('/api/note-counts')).counts; } catch { /* the cards just show no count */ }
+}
+
+async function updateNoteCounts() {
+  await loadNoteCounts();
+  if (board) render();
+}
+
+function setNoteStatus(text, isError = false) {
+  noteStatus.textContent = text;
+  noteStatus.classList.toggle('error', isError);
+}
+
+// Notes the board wrote can be edited or deleted. Notes written by hand in Obsidian are shown as they are.
+function noteEntry(note, id) {
+  const entry = element('article', 'saved-note');
+  const head = element('div', 'saved-note-head');
+  const source = element('a', 'note-link', `${note.date}${note.time ? ` · ${note.time}` : ''}`);
+  source.href = noteLink(note.file.replace(/\.md$/, ''));
+  head.append(source);
+  const content = element('p', 'saved-note-text');
+  appendText(content, note.text);
+  if (note.noteId) {
+    const actions = element('div', 'saved-note-actions');
+    const edit = element('button', '', 'Edit');
+    const remove = element('button', 'note-delete', 'Delete');
+    edit.type = remove.type = 'button';
+    edit.addEventListener('click', () => editNote(entry, content, actions, note, id));
+    remove.addEventListener('click', () => deleteNote(note, id));
+    actions.append(edit, remove);
+    head.append(actions);
+  } else head.append(element('span', 'saved-note-tag', 'written in Obsidian'));
+  entry.append(head, content);
+  return entry;
+}
+
+function editNote(entry, content, actions, note, id) {
+  const box = element('textarea', 'note-edit');
+  box.value = note.text;
+  box.rows = 4;
+  box.maxLength = 8000;
+  box.setAttribute('aria-label', 'Edit note');
+  const save = element('button', '', 'Save');
+  const cancel = element('button', '', 'Cancel');
+  save.type = cancel.type = 'button';
+  const row = element('div', 'note-edit-actions');
+  row.append(cancel, save);
+  actions.hidden = true;
+  content.replaceWith(box);
+  entry.append(row);
+  box.focus();
+  cancel.addEventListener('click', () => loadNoteHistory(id));
+  save.addEventListener('click', async () => {
+    if (!box.value.trim()) { setNoteStatus("A note can't be empty. Delete it instead.", true); box.focus(); return; }
+    save.disabled = cancel.disabled = true;
+    try {
+      await post('/api/notes/edit', { noteId: note.noteId, text: box.value });
+      setNoteStatus('Note saved');
+      await loadNoteHistory(id);
+    } catch (error) {
+      setNoteStatus(error.message, true);
+      save.disabled = cancel.disabled = false;
+    }
+  });
+}
+
+async function deleteNote(note, id) {
+  if (!confirm("Delete this note for good? This can't be undone.")) return;
+  try {
+    await post('/api/notes/delete', { noteId: note.noteId });
+    setNoteStatus('Note deleted');
+    await loadNoteHistory(id);
+    await updateNoteCounts();
+  } catch (error) {
+    setNoteStatus(error.message, true);
   }
 }
 
@@ -175,7 +249,7 @@ function card(task) {
   const foot = element('div', 'card-foot');
   const actions = element('div', 'foot-actions');
   if (task.id) {
-    const addNote = element('button', 'add-note', 'Notes');
+    const addNote = element('button', 'add-note', noteCounts[task.id] ? `Notes · ${noteCounts[task.id]}` : 'Notes');
     addNote.type = 'button';
     addNote.disabled = busy;
     addNote.setAttribute('aria-label', `Notes for ${text}`);
@@ -365,7 +439,7 @@ async function save(url, body, done) {
   }
 }
 
-refreshButton.addEventListener('click', () => refresh(true));
+refreshButton.addEventListener('click', () => { refresh(true); updateNoteCounts(); });
 newTaskButton.addEventListener('click', () => {
   if (!board || busy) return;
   taskRevision = board.revision;
@@ -529,6 +603,7 @@ document.querySelector('#note-form').addEventListener('submit', async event => {
     message.classList.remove('error');
     noteStatus.textContent = `Saved to ${result.file}`;
     await loadNoteHistory(noteTask.id);
+    await updateNoteCounts();
   } catch (error) {
     noteStatus.textContent = error.message;
     noteStatus.classList.add('error');
@@ -555,4 +630,5 @@ document.addEventListener('click', event => {
 });
 window.addEventListener('focus', () => refresh());
 refresh();
+updateNoteCounts();
 setInterval(() => refresh(), 5000);

@@ -127,7 +127,21 @@ dialog label { display: block; font: 600 12px var(--mono); margin: 18px 0 6px; }
 #notes-refresh { padding: 3px 8px; font-size: 11px; }
 #notes-list { max-height: 220px; overflow-y: auto; font-size: 13px; }
 .saved-note { padding: 10px; margin: 8px 0; border: 1.5px solid var(--ink-soft); border-radius: 6px; background: var(--card); }
-.saved-note > .note-link { font-size: 12px; }
+.saved-note-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.saved-note-head .note-link { font-size: 12px; }
+.saved-note-actions, .note-edit-actions { display: flex; gap: 6px; }
+.saved-note-actions button, .note-edit-actions button { padding: 2px 8px; font-size: 11px; }
+.note-delete:hover { background: #C1272D; border-color: #C1272D; color: #fff; }
+.saved-note-tag { font: 11px var(--mono); color: var(--ink-soft); }
+.note-edit { width: 100%; margin-top: 8px; padding: 8px; border: 1.5px solid var(--ink); border-radius: 6px; background: var(--panel); line-height: 1.5; resize: vertical; }
+.note-edit-actions { justify-content: flex-end; margin-top: 8px; }
+#note-dialog { margin: 0 0 0 auto; width: min(460px, 100vw); height: 100vh; max-height: none; border-width: 0 0 0 1.5px; border-radius: 0; padding: 20px; }
+#note-form { display: flex; flex-direction: column; height: 100%; }
+#notes-list { flex: 1; max-height: none; min-height: 80px; overflow-y: auto; }
+@media (prefers-reduced-motion: no-preference) {
+  #note-dialog[open] { animation: drawer-in .18s ease-out; }
+  @keyframes drawer-in { from { transform: translateX(32px); opacity: 0; } }
+}
 .saved-note-text { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.5; margin: 6px 0 0; }
 footer { display: flex; justify-content: space-between; gap: 16px; color: var(--ink-soft); font-size: 12px; padding: 14px 40px; border-top: 1.5px solid var(--ink); }
 .status-dot { display: inline-block; background: #4C9A2A; width: 7px; height: 7px; border-radius: 50%; margin-right: 6px; }

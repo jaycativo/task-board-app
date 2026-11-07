@@ -48,16 +48,17 @@ node --test task-board/*.test.mjs  # all tests
 - Archive all moves Done tasks to `Task Archive.md` (root of the vault) with a
   `✅` date. The archive is written before `TODO.md`, so a failure can only
   duplicate a task, never lose one.
+- Notes live in the vault's Obsidian daily notes folder (`.obsidian/daily-notes.json`),
+  or `--notes-folder`, or `Daily Notes/`. Only `YYYY-MM-DD` is supported. Times use
+  the local time zone. Entries the board wrote carry a hidden marker comment; only
+  those can be edited or deleted. A marker whose entry was changed by hand is refused.
 - The Move control is a custom `<details>` menu, not a native select, so it
   matches the app. The priority field in the task dialog is still a native select.
 
 ## Still to do
 
-- Notes: a side drawer with edit and delete for entries the app created, and
-  use the vault's Obsidian daily notes folder (`.obsidian/daily-notes.json`)
-  instead of the hard-coded `intake/`. Replace the hard-coded Europe/Lisbon time zone.
 - Sort cards by priority and due date.
-- Check phone width and dark mode by eye.
+- Check dark mode by eye. Phone width is not a priority.
 
 ## Voice
 

@@ -50,8 +50,11 @@ convert existing files.
 - **Reject tasks** from Inbox. Rejected tasks move to a collapsed Rejected
   panel where you can restore them or delete them all with the trash button.
 - **Search** by title, ID, priority, date, or a pasted `[[TODO#^task-id]]` link.
-- **Task notes.** Each task can have notes, saved to a dated file in your vault
-  and linked back to the task.
+- **Task notes.** A card's Notes button opens a drawer with that task's notes,
+  newest first, and a box to add one. The card shows how many notes it has.
+  Notes you added in the board can be edited or deleted there. Notes you wrote
+  by hand in Obsidian are listed too, marked "written in Obsidian", and stay
+  read-only.
 
 ## The `TODO.md` format
 
@@ -89,9 +92,18 @@ convert existing files.
 
 ## Notes
 
-Task notes are saved in `intake/YYYY-MM-DD.md` in the vault, using the
-Europe/Lisbon time zone for the date and time. Using your Obsidian daily notes
-folder and your own time zone instead is planned.
+Task notes are saved in your daily notes folder as dated files
+(`YYYY-MM-DD.md`), linked back to the task with `[[TODO#^task-id]]`, using your
+computer's time zone. The board finds the folder like this:
+
+1. `--notes-folder`, if you pass it: `bash start.sh "/path/to/vault" --notes-folder journal`
+2. Otherwise the folder in your Obsidian daily notes settings
+   (`.obsidian/daily-notes.json`). The board says which folder it picked when
+   it starts.
+3. Otherwise `Daily Notes/`, which it creates.
+
+Only the `YYYY-MM-DD` date format is supported. If your daily notes use another
+format, the board falls back to `Daily Notes/` and tells you so.
 
 The board checks for file changes before saving, but it does not share a lock
 with Obsidian. Avoid saving the same file in both apps at the same moment.
@@ -112,8 +124,7 @@ node --test task-board/*.test.mjs
 
 ## Status
 
-Work in progress. Planned: a notes drawer with edit and delete, sorting by
-priority and due date, and reading the Obsidian daily notes setting.
+Work in progress. Planned: sorting cards by priority and due date.
 
 Good to know: deleting or archiving a task does not touch its notes. Notes link
 to `[[TODO#^task-id]]`, so a link to an archived task stops resolving until the
