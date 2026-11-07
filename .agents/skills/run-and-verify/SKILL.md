@@ -65,8 +65,8 @@ All tests must pass. Say how many.
 
 The tests above cannot see the page. `smoke.js` (next to this file) uses every feature once in a
 real browser: it creates, edits, moves, drags, sorts, adds notes, picks dates, switches theme,
-archives, and deletes, and checks the page after each. It was written before the page was split into
-modules, and passing it before and after is how we knew the split changed nothing.
+archives, and deletes, and checks the page after each. Run it before and after a refactor: the same
+result means nothing changed.
 
 1. Start a **fresh scratch copy of the sample** (step 1). The test writes to it.
 2. Open the board's URL in a browser tool.

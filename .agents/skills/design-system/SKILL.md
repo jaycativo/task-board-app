@@ -127,3 +127,8 @@ itself and compare it.
 A click made in code (`element.click()`) or from the keyboard reports position
 (0, 0). Never decide "outside" from the position alone; check that a mouse press
 really started outside, and test with real mouse clicks.
+
+A style rule written for one kind of button can leak onto others that share a class or a parent.
+The raised-button shadow was first matched with a broad selector and showed up on the rows of the
+Move menu. Name the exact controls (`:is(.actions .button, .move-button, ...)`), and screenshot every
+open menu after changing a shared rule.

@@ -41,7 +41,7 @@ stale revision, and a task that does not exist. Run all tests with
 - Build elements with `element(tag, className, text)`. Never put task text
   into `innerHTML`.
 - Style and word it using `design-system`.
-- Page code is split by job (see `AGENTS.md`). Put new behaviour in the module that owns it,
+- Page code is split by job, one file per job in `web/`. Put new behaviour in the module that owns it,
   or a new small module, not in `app.js`. A module gets what it needs when it is created
   (`createBoardView({ onMove, ... })`), never by importing a module that imports it.
 - Add a check to `smoke.js` for anything new someone can do on the page.

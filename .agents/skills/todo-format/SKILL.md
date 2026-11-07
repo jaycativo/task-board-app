@@ -30,6 +30,7 @@ read, what it may change, and what it must leave alone.
 - Both collector markers must exist. `## Done` must come after the end marker.
 - Inbox, Backlog, Next, Now, In Progress, and Done must each appear once.
   A repeated heading is an error (422). Unknown headings are ignored.
+- The file says `## Backlog`; the page shows it as **Later**. Keep the file heading as it is.
 - Tasks outside the markers, inside code fences, or under unknown headings are ignored.
 - Old `## Suggestions` headings are ignored, not migrated.
 - The file's revision is the SHA-256 of its text. Every change carries the
