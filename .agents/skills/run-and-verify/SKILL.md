@@ -33,7 +33,13 @@ node task-board/server.mjs /tmp/board-scratch
 It prints a URL on a random port and which notes folder it chose. It also tries
 to open your browser. To stop that while an agent drives it, run it with an
 empty `PATH`: `env PATH=/nonexistent "$(command -v node)" task-board/server.mjs <vault>`.
-Stop it with Ctrl+C or `pkill -f task-board/server.mjs` when you are done.
+Stop it with Ctrl+C. If you started it in the background, stop only that one:
+kill it by its process ID, or match your scratch folder in the command, as in
+`pkill -f "server.mjs /tmp/board-scratch"`.
+
+**Never run `pkill -f server.mjs`.** It matches every board on the machine,
+including one the person is running themselves, and their page then shows an
+error. Only stop what you started.
 
 ## 3. Drive the page
 
@@ -57,7 +63,7 @@ All tests must pass. Say how many.
 
 ## 5. Finish clean
 
-- Stop the server.
+- Stop the server you started, and only that one.
 - `git status`: only the files you meant to change are modified. The sample
   `TODO.md` must be untouched (`git diff --quiet TODO.md`).
 - When you report, say what you checked and what you did not (for example

@@ -387,7 +387,9 @@ function render() {
 }
 
 async function request(url, options) {
-  const response = await fetch(url, options);
+  let response;
+  try { response = await fetch(url, options); }
+  catch { throw new Error("Can't reach the board's server. If you closed it, start it again with bash start.sh."); }
   const result = await response.json();
   if (!response.ok) throw new Error(result.error || 'The request failed.');
   return result;
