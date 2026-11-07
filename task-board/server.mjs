@@ -8,11 +8,32 @@ import { spawn } from 'node:child_process';
 const directory = dirname(fileURLToPath(import.meta.url));
 const startMarker = '<!-- todo-collector:start -->';
 const endMarker = '<!-- todo-collector:end -->';
-const checkbox = /^([-*+]\s+\[)([ xX])(\]\s+)(.*)$/;
-export const columns = ['Inbox', 'Suggestions', 'Backlog', 'Next', 'Now', 'In Progress', 'Done'];
+const checkbox = /^([-*+]\s+\[)([ xX-])(\]\s+)(.*)$/;
+// Rejected is optional. It sits after the end marker, and rejected tasks are written as "- [-]" (cancelled in the Tasks plugin).
+export const columns = ['Inbox', 'Backlog', 'Next', 'Now', 'In Progress', 'Done', 'Rejected'];
 
 function fail(message, status = 400) {
   return Object.assign(new Error(message), { status });
+}
+
+// Due date and priority use the Obsidian Tasks plugin emoji format, e.g. "Title ⏫ 📅 2026-11-14".
+const priorityEmoji = { high: '⏫', medium: '🔼', low: '🔽' };
+const priorityByEmoji = { '🔺': 'high', '⏫': 'high', '🔼': 'medium', '🔽': 'low', '⏬': 'low' };
+const dueToken = /📅️?\s*(\d{4}-\d{2}-\d{2})/u;
+const priorityToken = /(🔺|⏫|🔼|🔽|⏬)️?/u;
+
+function validDate(value) {
+  const [year, month, day] = value.split('-').map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
+}
+
+// Reads the due date and priority from a task line without changing the line itself.
+export function readTokens(text) {
+  const due = text.match(dueToken)?.[1];
+  const emoji = text.match(priorityToken)?.[1];
+  const title = text.replace(new RegExp(dueToken, 'gu'), '').replace(new RegExp(priorityToken, 'gu'), '').replace(/\s{2,}/g, ' ').trim();
+  return { title, due: due && validDate(due) ? due : null, priority: emoji ? priorityByEmoji[emoji] : null };
 }
 
 export function parseBoard(text) {
@@ -42,7 +63,9 @@ export function parseBoard(text) {
     const heading = line.match(/^## (.+?)\s*$/);
     if (heading) {
       const name = heading[1];
-      section = columns.includes(name) && (i < end ? name !== 'Done' : i === done) ? name : null;
+      const after = i > end;
+      const allowed = after ? (name === 'Done' ? i === done : name === 'Rejected') : name !== 'Done' && name !== 'Rejected';
+      section = columns.includes(name) && allowed ? name : null;
       if (section) {
         if (headings[section] !== undefined) throw fail(`Repeated ${section} heading.`, 422);
         headings[section] = i;
@@ -62,7 +85,7 @@ export function parseBoard(text) {
     if (id && ids.has(id)) throw fail(`Repeated task ID: ${id}. Give each task a unique ID.`, 422);
     if (id) ids.add(id);
     const text = blockId ? match[4].slice(0, blockId.index) : match[4];
-    tasks.push({ id, line: i, end: blockEnd, text, section, checked: match[2] !== ' ' });
+    tasks.push({ id, line: i, end: blockEnd, text, ...readTokens(text), section, checked: match[2] === 'x' || match[2] === 'X' });
     i = blockEnd - 1;
   }
   for (const name of ['Inbox', 'Backlog', 'Next', 'Now', 'In Progress', 'Done']) {
@@ -78,27 +101,45 @@ export function parseBoard(text) {
 export function moveTask(text, { revision, id, line, target }) {
   const board = parseBoard(text);
   if (revision !== board.revision) throw fail('TODO.md changed. The board has refreshed. Please move the task again.', 409);
-  if (!board.columns.includes(target)) throw fail('Choose a valid column.');
+  if (!columns.includes(target) || (target !== 'Rejected' && board.headings[target] === undefined)) throw fail('Choose a valid column.');
   const task = board.tasks.find(item => id ? item.id === id : item.line === line);
   if (!task) throw fail('Task not found. Refresh the board.', 404);
   if (task.section === target && task.checked === (target === 'Done')) return text;
   const block = board.lines.splice(task.line, task.end - task.line);
   const ending = block[0].endsWith('\r') ? '\r' : '';
   block[0] = block[0].replace(/\r$/, '').replace(checkbox, (_, prefix, state, suffix, body) =>
-    `${prefix}${target === 'Done' ? 'x' : ' '}${suffix}${body}`) + ending;
+    `${prefix}${target === 'Done' ? 'x' : target === 'Rejected' ? '-' : ' '}${suffix}${body}`) + ending;
+  if (board.headings[target] === undefined) {
+    // First rejection: add the Rejected heading at the end of the file.
+    const cr = text.includes('\r\n') ? '\r' : '';
+    while (board.lines.length && !board.lines.at(-1).trim()) board.lines.pop();
+    board.lines.push(cr, `## Rejected${cr}`, ...block, '');
+    return board.lines.join('\n');
+  }
   let destination = board.headings[target] + 1;
   if (task.line < destination) destination -= block.length;
   board.lines.splice(destination, 0, ...block);
   return board.lines.join('\n');
 }
 
-export function createTask(text, { revision, id, title }) {
+// Permanently removes every task under the Rejected heading.
+export function clearRejected(text, { revision }) {
+  const board = parseBoard(text);
+  if (revision !== board.revision) throw fail('TODO.md changed. The board has refreshed. Please try again.', 409);
+  const rejected = board.tasks.filter(task => task.section === 'Rejected').sort((a, b) => b.line - a.line);
+  for (const task of rejected) board.lines.splice(task.line, task.end - task.line);
+  return rejected.length ? board.lines.join('\n') : text;
+}
+
+export function createTask(text, { revision, id, title, due, priority }) {
   if (typeof title !== 'string' || !title.trim() || title.length > 2000 || /[\r\n]/.test(title)) {
     throw fail('Enter a task title on one line, with 1 to 2000 characters.');
   }
   if (/\s\^[A-Za-z0-9-]+\s*$/.test(title)) throw fail('Enter the title only. The board adds a task ID.');
   if (typeof id !== 'string' || !/^task-[a-f0-9]{8}$/.test(id)) throw fail('Invalid new task ID.');
-  title = title.trim();
+  if (due != null && (typeof due !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(due) || !validDate(due))) throw fail('Choose a valid due date.');
+  if (priority != null && !priorityEmoji[priority]) throw fail('Choose high, medium, or low priority.');
+  title = [title.trim(), priority && priorityEmoji[priority], due && `📅 ${due}`].filter(Boolean).join(' ');
   const board = parseBoard(text);
   const existing = board.tasks.find(task => task.id === id);
   if (existing) {
@@ -209,7 +250,7 @@ export function createBoardServer(vaultRoot) {
       } else if (request.method === 'GET' && request.url.startsWith('/api/notes?')) {
         const id = new URL(request.url, origin).searchParams.get('id');
         send(200, { notes: readTaskNotes(vaultRoot, id) });
-      } else if (request.method === 'POST' && ['/api/move', '/api/notes', '/api/tasks'].includes(request.url)) {
+      } else if (request.method === 'POST' && ['/api/move', '/api/notes', '/api/tasks', '/api/clear-rejected'].includes(request.url)) {
         if (request.headers['content-type'] !== 'application/json') throw fail('Send JSON only.', 415);
         const chunks = [];
         let size = 0;
@@ -228,7 +269,8 @@ export function createBoardServer(vaultRoot) {
         if (!change || typeof change !== 'object') throw fail('Invalid task request.');
         if (request.url === '/api/move' && !(typeof change.id === 'string' || Number.isInteger(change.line))) throw fail('Invalid move.');
         const original = readFileSync(note, 'utf8');
-        const updated = request.url === '/api/tasks' ? createTask(original, change) : moveTask(original, change);
+        const change_ = { '/api/tasks': createTask, '/api/clear-rejected': clearRejected }[request.url] || moveTask;
+        const updated = change_(original, change);
         if (updated !== original) {
           const temporary = `${note}.board-${randomBytes(8).toString('hex')}.tmp`;
           try {

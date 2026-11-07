@@ -4,7 +4,7 @@ export function filterTasks(tasks, query) {
   if (!text) return tasks;
   const terms = normalize(text).split(/\s+/);
   return tasks.filter(task => {
-    const content = normalize(`${task.text} ${task.id || ''}`);
+    const content = normalize(`${task.title ?? task.text} ${task.id || ''} ${task.priority || ''} ${task.due || ''}`);
     return terms.every(term => content.includes(term));
   });
 }

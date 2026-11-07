@@ -18,6 +18,9 @@ const taskTitle = document.querySelector('#new-task-title');
 const taskStatus = document.querySelector('#task-status');
 const taskCreate = document.querySelector('#task-create');
 const taskCancel = document.querySelector('#task-cancel');
+const taskDue = document.querySelector('#new-task-due');
+const taskPriority = document.querySelector('#new-task-priority');
+const paletteButton = document.querySelector('#palette');
 const labels = { Backlog: 'Later', 'In Progress': 'In progress' };
 const descriptions = { Backlog: 'Someday, maybe', Next: 'Coming into focus', Now: 'Ready for you', 'In Progress': 'Already in motion', Done: 'Look at you go' };
 let board;
@@ -74,18 +77,65 @@ async function loadNoteHistory(id) {
   }
 }
 
+const priorities = { high: ['▲', 'high'], medium: ['◆', 'med'], low: ['▼', 'low'] };
+
+// Turns a stored YYYY-MM-DD date into a short friendly label, using the viewer's local calendar day.
+export function dueLabel(due, today = new Date()) {
+  const [year, month, day] = due.split('-').map(Number);
+  const date = new Date(year, month - 1, day);
+  if (date.getMonth() !== month - 1) return { text: due, late: false };
+  const start = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const days = Math.round((date - start) / 86400000);
+  if (days < 0) {
+    const ago = -days;
+    return { text: ago < 7 ? `${ago}d late` : `${Math.floor(ago / 7)}w late`, late: true };
+  }
+  if (days === 0) return { text: 'today', late: false };
+  if (days === 1) return { text: 'tomorrow', late: false };
+  if (days < 7) return { text: date.toLocaleDateString([], { weekday: 'short' }).toLowerCase(), late: false };
+  const options = { month: 'short', day: 'numeric', ...(year !== start.getFullYear() && { year: 'numeric' }) };
+  return { text: date.toLocaleDateString([], options).toLowerCase(), late: false };
+}
+
+function dueChip(due, checked) {
+  const full = new Date(...[...due.split('-').map(Number)].map((part, index) => index === 1 ? part - 1 : part));
+  const fullText = full.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+  if (checked) {
+    const chip = element('span', 'chip due-done', due);
+    chip.title = fullText;
+    return chip;
+  }
+  const { text, late } = dueLabel(due);
+  const chip = element('span', `chip due${late ? ' late' : text === 'today' ? ' today' : ''}`, text);
+  chip.title = fullText;
+  return chip;
+}
+
 function card(task) {
   const node = element('article', `card${task.checked ? ' checked' : ''}`);
   node.draggable = true;
+  const text = task.title ?? task.text;
   const title = element('p', 'task-title');
-  const split = task.text.lastIndexOf(' — ');
-  const hasSources = split >= 0 && /^(\[\[.*?\]\])(,\s*\[\[.*?\]\])*$/.test(task.text.slice(split + 3));
-  appendText(title, hasSources ? task.text.slice(0, split) : task.text);
+  const split = text.lastIndexOf(' — ');
+  const hasSources = split >= 0 && /^(\[\[.*?\]\])(,\s*\[\[.*?\]\])*$/.test(text.slice(split + 3));
+  appendText(title, hasSources ? text.slice(0, split) : text);
   node.append(title);
   if (hasSources) {
     const sources = element('p', 'sources');
-    appendText(sources, task.text.slice(split + 3));
+    appendText(sources, text.slice(split + 3));
     node.append(sources);
+  }
+  if (task.due || task.priority) {
+    const chips = element('div', 'chips');
+    if (task.due) {
+      const due = dueChip(task.due, task.checked);
+      chips.append(due);
+    }
+    if (task.priority) {
+      const [symbol, word] = priorities[task.priority];
+      chips.append(element('span', `chip priority-${task.priority}`, `${symbol} ${word}`));
+    }
+    node.append(chips);
   }
   if (task.end > task.line + 1) node.append(element('p', 'detail-hint', 'More detail in TODO.md'));
   const foot = element('div', 'card-foot');
@@ -93,14 +143,14 @@ function card(task) {
     const addNote = element('button', 'add-note', 'Notes');
     addNote.type = 'button';
     addNote.disabled = busy;
-    addNote.setAttribute('aria-label', `Notes for ${task.text}`);
+    addNote.setAttribute('aria-label', `Notes for ${text}`);
     addNote.addEventListener('click', () => {
       noteTask = task;
       noteRequestId = crypto.randomUUID();
       noteText.value = '';
       noteStatus.textContent = '';
       noteStatus.classList.remove('error');
-      document.querySelector('#note-task').textContent = task.text;
+      document.querySelector('#note-task').textContent = text;
       noteDialog.showModal();
       noteText.focus();
       loadNoteHistory(task.id);
@@ -109,7 +159,7 @@ function card(task) {
   } else foot.append(element('span'));
   const label = element('label', 'move-label', 'Move ');
   const select = element('select');
-  select.setAttribute('aria-label', `Move task: ${task.text}`);
+  select.setAttribute('aria-label', `Move task: ${text}`);
   for (const name of board.columns) {
     const option = element('option', '', labels[name] || name);
     option.value = name;
@@ -152,7 +202,7 @@ function render() {
   document.querySelector('#search-count').textContent = searching ? `${matching.length} of ${board.tasks.length} tasks` : `${board.tasks.length} tasks`;
   document.querySelector('#search-empty').hidden = !searching || matching.length > 0;
   for (const name of board.columns) {
-    const intake = ['Inbox', 'Suggestions'].includes(name);
+    const intake = name === 'Inbox';
     const column = element(intake ? 'details' : 'section', `column column-${name.toLowerCase().replaceAll(' ', '-')}`);
     const tasks = matching.filter(task => task.section === name);
     const heading = element(intake ? 'summary' : 'div', 'column-heading');
@@ -245,6 +295,8 @@ newTaskButton.addEventListener('click', () => {
   do { newTaskId = `task-${crypto.randomUUID().replaceAll('-', '').slice(0, 8)}`; }
   while (board.tasks.some(task => task.id === newTaskId));
   taskTitle.value = '';
+  taskDue.value = '';
+  taskPriority.value = '';
   taskStatus.textContent = '';
   taskStatus.classList.remove('error');
   taskDialog.showModal();
@@ -272,7 +324,7 @@ document.querySelector('#task-form').addEventListener('submit', async event => {
   try {
     board = await request('/api/tasks', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ revision: taskRevision, id: newTaskId, title }),
+      body: JSON.stringify({ revision: taskRevision, id: newTaskId, title, due: taskDue.value || undefined, priority: taskPriority.value || undefined }),
     });
     searchInput.value = '';
     taskDialog.close();
@@ -346,6 +398,17 @@ document.querySelector('#note-form').addEventListener('submit', async event => {
     noteCancel.disabled = false;
     noteText.readOnly = false;
   }
+});
+function setPalette(colourBlind) {
+  document.documentElement.dataset.palette = colourBlind ? 'cb' : '';
+  paletteButton.setAttribute('aria-pressed', String(colourBlind));
+  paletteButton.textContent = `Colour-blind palette: ${colourBlind ? 'on' : 'off'}`;
+}
+try { setPalette(localStorage.getItem('palette') === 'cb'); } catch { setPalette(false); }
+paletteButton.addEventListener('click', () => {
+  const next = paletteButton.getAttribute('aria-pressed') !== 'true';
+  setPalette(next);
+  try { localStorage.setItem('palette', next ? 'cb' : ''); } catch {}
 });
 window.addEventListener('focus', () => refresh());
 refresh();
