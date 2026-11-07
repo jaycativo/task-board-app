@@ -46,10 +46,7 @@
       <div class="task-extras">
         <div class="date-field">
           <label for="new-task-due">Due date <span class="optional">(optional)</span></label>
-          <div class="date-row">
-            <input id="new-task-due" type="text" inputmode="numeric" maxlength="10" autocomplete="off" placeholder="YYYY-MM-DD">
-            <button id="due-toggle" type="button" aria-label="Pick a date" aria-expanded="false" aria-controls="calendar">Pick</button>
-          </div>
+          <input id="new-task-due" type="text" inputmode="numeric" maxlength="10" autocomplete="off" placeholder="Click to pick, or type YYYY-MM-DD" aria-haspopup="dialog" aria-controls="calendar" aria-expanded="false">
         </div>
         <div id="calendar" class="calendar" role="group" aria-label="Pick a due date" hidden></div>
         <div>

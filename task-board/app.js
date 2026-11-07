@@ -32,7 +32,6 @@ priorityGroup.addEventListener('click', event => {
   if (button) taskPriority.value = button.dataset.value;
 });
 const calendar = document.querySelector('#calendar');
-const dueToggle = document.querySelector('#due-toggle');
 let calendarView = { year: 0, month: 0 };
 const wantOpen = new Set();
 const paletteButton = document.querySelector('#palette');
@@ -336,7 +335,7 @@ function render() {
     const tasks = sortTasks(matching.filter(task => task.section === name), sortMode);
     const heading = element(collapsible ? 'summary' : 'div', 'column-heading');
     if (collapsible) {
-      const chevron = element('span', 'chevron', '▸');
+      const chevron = element('span', 'chevron');
       chevron.setAttribute('aria-hidden', 'true');
       heading.append(chevron);
     }
@@ -518,20 +517,33 @@ function openCalendar() {
   calendarView = { year: chosen?.year ?? now.getFullYear(), month: chosen?.month ?? now.getMonth() };
   renderCalendar();
   calendar.hidden = false;
-  dueToggle.setAttribute('aria-expanded', 'true');
+  taskDue.setAttribute('aria-expanded', 'true');
 }
 
 function closeCalendar() {
   calendar.hidden = true;
-  dueToggle.setAttribute('aria-expanded', 'false');
+  taskDue.setAttribute('aria-expanded', 'false');
 }
 
-dueToggle.addEventListener('click', () => (calendar.hidden ? openCalendar() : closeCalendar()));
+// Click the field to open the calendar. Typing still works, and the calendar follows what you type.
+taskDue.addEventListener('click', () => { if (calendar.hidden) openCalendar(); });
+taskDue.addEventListener('keydown', event => {
+  if (event.key === 'ArrowDown' && calendar.hidden) { event.preventDefault(); openCalendar(); }
+  if (event.key === 'Escape' && !calendar.hidden) { event.preventDefault(); event.stopPropagation(); closeCalendar(); }
+});
+taskDue.addEventListener('input', () => {
+  if (calendar.hidden) return;
+  const typed = parseDate(taskDue.value.trim());
+  if (typed) calendarView = { year: typed.year, month: typed.month };
+  renderCalendar();
+});
 calendar.addEventListener('keydown', event => {
-  if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); closeCalendar(); dueToggle.focus(); }
+  if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); closeCalendar(); taskDue.focus(); }
 });
 taskDialog.addEventListener('click', event => {
-  if (!calendar.hidden && !calendar.contains(event.target) && !dueToggle.contains(event.target)) closeCalendar();
+  // Read the path now: the month arrows redraw the calendar, which removes the button that was clicked.
+  const path = event.composedPath();
+  if (!calendar.hidden && !path.includes(calendar) && !path.includes(taskDue)) closeCalendar();
 });
 
 function openEditor(task) {

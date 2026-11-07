@@ -42,10 +42,12 @@ Playful, but serious about the work. Warm colour, firm outlines, plain words.
     the only way to reject a task.
   - Priority in the task form is a row of toggle buttons (`role="group"`,
     `aria-pressed`), like the Sort control. A selected priority takes its own colour.
-  - Due date is a text field that takes `YYYY-MM-DD`, with a Pick button that
+  - Due date is a text field that takes `YYYY-MM-DD`. Clicking it (or pressing ↓)
     opens a small inline calendar (`calendar.mjs`: Monday first, today outlined,
-    Today and Clear buttons, Escape closes only the calendar). Typing is validated.
-- Collapsible panels (Inbox, Rejected) show a ▸ that turns to ▾ when open. A panel
+    Today and Clear buttons, Escape closes only the calendar), and the calendar
+    follows what you type. Typing is validated.
+- Collapsible panels (Inbox, Rejected) show a triangle drawn in CSS, so it sits
+  level with the heading text; it points right when closed and down when open. A panel
   a task has just moved into opens by itself, so the person sees where it went.
 - Buttons inside a `<summary>` must call `preventDefault()` and
   `stopPropagation()`, or they also toggle the section.
@@ -70,3 +72,10 @@ Sentence case. Short and warm. Say what happened, then what to do.
 Skip "please", "successfully", and exclamation marks on system messages.
 Empty states invite ("Nothing here. Enjoy it."). Permanent actions say so:
 "Delete … for good? This can't be undone."
+
+## A bug worth remembering
+
+When a click handler redraws the control that was clicked (the calendar's month
+arrows), the clicked button is gone by the time a "click outside" check runs, so
+`contains(event.target)` says it was outside. Read `event.composedPath()` instead:
+it is captured when the click happens.
