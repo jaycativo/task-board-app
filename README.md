@@ -185,3 +185,7 @@ Work in progress.
 Good to know: deleting or archiving a task does not touch its notes. Notes link
 to `[[TODO#^task-id]]`, so a link to an archived task stops resolving until the
 task is back in `TODO.md`.
+
+## Licence
+
+[MIT](LICENSE). Use it, change it, share it.

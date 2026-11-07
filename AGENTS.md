@@ -66,4 +66,4 @@ Built: the look, due dates and priorities, colour-blind palette, the Rejected
 panel (Move, then Rejected; restore; delete all), archive, edit and delete, the
 Move menu, the notes drawer, sorting, light and dark mode, README screenshots.
 
-Open: add a licence. Phone width is not a priority.
+Licence: MIT. Phone width is not a priority.
