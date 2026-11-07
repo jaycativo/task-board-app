@@ -77,7 +77,15 @@ modules, and passing it before and after is how we knew the split changed nothin
 Use real clicks for anything about outside clicks or hovering. The script's `clickAt` sends a mouse
 press and release at a point, which is the closest a script gets.
 
-## 6. Finish clean
+## 6. Check readability
+
+`contrast.js` (next to `smoke.js`) measures the contrast of all visible text in light and dark, in
+Playful and Minimal, with each overlay open (the task dialog and calendar, a Move menu, the notes
+drawer). Run it the same way, on a board that has tasks, a card with a note, and some finished tasks
+(the demo vault used for the README screenshots works). Expect `failures: []`. Run it after any change
+to a colour, a font size, or a background.
+
+## 7. Finish clean
 
 - Stop the server you started, and only that one.
 - `git status`: only the files you meant to change are modified. The sample

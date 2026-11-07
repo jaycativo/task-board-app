@@ -11,8 +11,13 @@ Playful, but serious about the work. Warm colour, firm outlines, plain words.
 
 - Tan page, cream panels, white cards. Colours are CSS variables at the top of
   `web/style.css`; use them, never raw hex in a rule. Light and dark follow the system.
-- Everything is outlined in ink at `1.5px`. Column panels and dialogs get a
-  thicker `5px` bottom edge. Corners are `6px` (controls) to `8px` (panels).
+- Everything is outlined at `1.5px` in `--line`. Column panels and dialogs get a
+  thicker `5px` bottom edge. **Outlines and raised edges use `--line`, never `--ink`.** `--ink` is for
+  text: in dark mode it is bright cream, and cream outlines everywhere made the board glare. In light
+  mode the two are the same brown; in dark mode `--line` is a softer tan.
+- Text must be readable in every theme and style: at least 4.5 to 1 against what is behind it (3 to 1
+  for text 24px and up). Do not put a fixed dark colour on a colour that goes dark in dark mode (that
+  made the selected "None" priority unreadable once). Run `contrast.js` after any colour change. Corners are `6px` (controls) to `8px` (panels).
 - Headings, labels, chips, and buttons use the monospace stack in bold at
   11–12px. Body text is the system sans at 15px.
 - Buttons are cream with an ink outline and go butter on hover. The one main
