@@ -101,7 +101,7 @@ with Obsidian. Avoid saving the same file in both apps at the same moment.
 The server listens on `127.0.0.1` only, on a random port, so other devices on
 your network cannot reach it. It checks the Host and Origin of every request,
 accepts only JSON for changes, and sends a strict content security policy. It
-reads and writes only `TODO.md` and the notes folder. Do not expose its port
+reads and writes only `TODO.md`, `Task Archive.md`, and the notes folder. Do not expose its port
 with a tunnel or port forwarding.
 
 ## Tests
