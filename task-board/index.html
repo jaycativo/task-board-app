@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Vault · Task board</title>
+  <link rel="stylesheet" href="/style.css">
+  <script src="/app.js" type="module"></script>
+</head>
+<body>
+  <header>
+    <div class="brand"><span class="brand-mark">V</span><span>PERSONAL WORKSPACE</span><span class="local">LOCAL</span></div>
+    <div class="heading"><div><p class="eyebrow">A LITTLE SPACE FOR WHAT’S NEXT</p><h1>Your task board<span>.</span></h1></div><a id="open-note" class="button" href="#">Open in Obsidian ↗</a></div>
+    <div class="toolbar"><p>One board. Your vault. <span id="total">Loading tasks…</span></p><div class="toolbar-actions"><button id="new-task" type="button" disabled>+ New task</button><button id="refresh" type="button">↻ Refresh</button></div></div>
+  </header>
+  <main>
+    <div class="board-heading"><h2>THE WORK AHEAD</h2><p>Drag a card or choose Move to change its state.</p></div>
+    <div class="search-bar">
+      <label for="task-search">Find a task</label>
+      <input id="task-search" type="search" placeholder="Search title, ID, or paste a task link…" autocomplete="off" aria-controls="board intake">
+      <button id="search-clear" type="button" hidden>Clear search</button>
+      <span id="search-count" role="status" aria-live="polite"></span>
+    </div>
+    <p id="search-empty" hidden>No tasks match. Try another title or ID.</p>
+    <p id="message" role="status" aria-live="polite">Loading TODO.md…</p>
+    <div id="intake" aria-label="Task intake"></div>
+    <div id="board" aria-label="Task board"></div>
+  </main>
+  <footer><span><span class="status-dot"></span> Linked to TODO.md</span><span>Changes stay in your vault · Checks for updates every 5 seconds</span></footer>
+  <dialog id="task-dialog" aria-labelledby="task-heading">
+    <form id="task-form">
+      <p class="eyebrow">CAPTURE WHAT’S NEXT</p>
+      <h2 id="task-heading">New task</h2>
+      <p class="note-help">New tasks go to Inbox. You can move them when you are ready.</p>
+      <label for="new-task-title">Task title</label>
+      <input id="new-task-title" type="text" maxlength="2000" required autocomplete="off" placeholder="What do you want to do?">
+      <p id="task-status" role="status" aria-live="polite"></p>
+      <div class="note-buttons"><button id="task-cancel" type="button">Cancel</button><button id="task-create" type="submit">Create task</button></div>
+    </form>
+  </dialog>
+  <dialog id="note-dialog" aria-labelledby="note-heading">
+    <form id="note-form">
+      <p class="eyebrow">CAPTURE A TASK UPDATE</p>
+      <h2 id="note-heading">Task notes</h2>
+      <p id="note-task"></p>
+      <p class="note-help">This note goes to today’s daily note, with a link to this task.</p>
+      <div class="notes-heading"><h3>Saved notes</h3><button id="notes-refresh" type="button">↻ Refresh notes</button></div>
+      <div id="notes-list" aria-live="polite"></div>
+      <label for="note-text">Note</label>
+      <textarea id="note-text" rows="6" maxlength="8000" required placeholder="What changed? What do you want to keep?"></textarea>
+      <p id="note-status" role="status" aria-live="polite"></p>
+      <div class="note-buttons"><button id="note-cancel" type="button">Cancel</button><button id="note-save" type="submit">Save to daily note</button></div>
+    </form>
+  </dialog>
+</body>
+</html>
