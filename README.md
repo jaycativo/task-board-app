@@ -171,6 +171,9 @@ with Obsidian. Avoid saving the same file in both apps at the same moment.
 
 ## Building on it
 
+Curious how it was made, or want to make your own? Read
+[how we built this](docs/HOW-WE-BUILT-THIS.md).
+
 Agent instructions live in `AGENTS.md`, and task-specific skills (adding a
 feature, the file format, server safety, the design system, running and
 verifying) live in `.agents/skills/`. They are written for any coding
