@@ -1,0 +1,19 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Task Board icon</title>
+<!-- The source of scripts/task-board.icns. Rendered with Chrome, then turned into an .icns (see scripts/make-icon.sh). -->
+<style>
+  html, body { margin: 0; background: transparent; }
+  .tile { position: absolute; left: 100px; top: 100px; width: 824px; height: 824px; box-sizing: border-box; background: #EAD7B8; border: 16px solid #3B2A1E; border-bottom-width: 38px; border-radius: 190px; overflow: hidden; }
+  .cols { position: absolute; inset: 110px 84px 96px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; }
+  .col { background: #FFFBF3; border: 12px solid #3B2A1E; border-bottom-width: 24px; border-radius: 30px; overflow: hidden; }
+  .tab { height: 96px; border-bottom: 12px solid #3B2A1E; }
+  .card { margin: 28px 20px 0; height: 88px; background: #fff; border: 10px solid #3B2A1E; border-radius: 20px; }
+  .hot { background: #FF8A3D; }
+  .done { background: #F1F2F4; border-style: dashed; }
+</style>
+<div class="tile"><div class="cols">
+  <div class="col"><div class="tab" style="background:#DCCFF2"></div><div class="card"></div><div class="card"></div></div>
+  <div class="col"><div class="tab" style="background:#F4B6C6"></div><div class="card hot"></div><div class="card"></div></div>
+  <div class="col"><div class="tab" style="background:#A5DCD3"></div><div class="card done"></div></div>
+</div></div>

@@ -34,6 +34,8 @@ node --test task-board/*.test.mjs  # all tests (list the files; a directory path
   `calendar.mjs` the date picker's date logic.
 - `task-board/style.css`: design tokens at the top.
 - `task-board/theme.js`: applies the saved light or dark choice before the page is drawn.
+- `scripts/`: builds the Mac Dock app (`make-mac-app.sh`) and its icon (`make-icon.sh`,
+  `icon.html`, `task-board.icns`). The built `.app` is never committed.
 - `task-board/*.test.mjs`: tests for server logic, search and sorting, notes, dates.
 
 ## Skills

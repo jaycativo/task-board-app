@@ -11,3 +11,6 @@ intake/
 journal/
 TASK-ARCHIVE.md
 .obsidian/
+
+# Mac apps built by scripts/make-mac-app.sh hold paths from your machine
+*.app/

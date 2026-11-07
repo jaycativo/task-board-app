@@ -47,6 +47,28 @@ Links that open Obsidian (Open in Obsidian, and the task and note links) use
 your vault's folder name as its name. If you gave the vault a different name in
 Obsidian, those links will not open until the names match.
 
+## Open it from the Dock (Mac)
+
+Build a small Mac app once, and the board opens like any other app:
+
+```sh
+bash scripts/make-mac-app.sh "/path/to/your/vault"
+```
+
+Leave off the path to use the sample. The script creates **Task Board** in your
+`~/Applications` folder (in Finder: Go, Home, then Applications). Drag it to the
+Dock to keep it there.
+
+- Click it to start the board and open it in your browser. The first launch of
+  a new app can take a few seconds.
+- Click it again while it is running to open the page again.
+- Quit it (right-click the Dock icon, then Quit) to stop the board.
+- If the board cannot start, the app shows why.
+
+The app remembers where this folder, your vault, and Node.js are. If you move
+any of them, or switch Node versions (for example with nvm), run the script
+again.
+
 ## Set it up with an AI assistant
 
 Not sure how to bring your own tasks over? Give this prompt to an AI assistant
