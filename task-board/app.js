@@ -576,6 +576,12 @@ searchInput.addEventListener('keydown', event => {
 noteCancel.addEventListener('click', () => noteDialog.close());
 document.querySelector('#notes-refresh').addEventListener('click', () => loadNoteHistory(noteTask.id));
 noteDialog.addEventListener('cancel', event => { if (noteSaving) event.preventDefault(); });
+// Clicking outside the drawer closes it, unless that would throw away a draft or an open edit.
+noteDialog.addEventListener('click', event => {
+  const box = noteDialog.getBoundingClientRect();
+  const outside = event.clientX < box.left || event.clientX > box.right || event.clientY < box.top || event.clientY > box.bottom;
+  if (outside && !noteSaving && !noteText.value.trim() && !noteDialog.querySelector('.note-edit')) noteDialog.close();
+});
 document.querySelector('#note-form').addEventListener('submit', async event => {
   event.preventDefault();
   if (noteSaving) return;

@@ -65,7 +65,7 @@ summary { cursor: pointer; }
 .column-heading { display: flex; align-items: center; gap: 8px; margin: -8px -8px 8px; padding: 7px 10px; background: var(--accent); border-bottom: 1.5px solid var(--ink); border-radius: 6px 6px 0 0; color: var(--tab-ink); }
 .card.rejected { background: transparent; border-style: dashed; color: var(--done-ink); }
 .card.rejected .task-title { text-decoration: line-through; }
-.foot-actions { display: flex; gap: 6px; }
+.foot-actions { display: flex; flex-wrap: wrap; gap: 6px; }
 .reject:hover { background: var(--rose); color: #3B2A1E; }
 .trash, .archive { margin-left: 10px; padding: 2px 8px; font-size: 11px; color: var(--ink); }
 .archive:hover { background: var(--butter); color: #3B2A1E; }
@@ -110,7 +110,8 @@ summary { cursor: pointer; }
 #new-task-due, #new-task-priority { width: 100%; padding: 9px 10px; border: 1.5px solid var(--ink); border-radius: 6px; background: var(--card); max-width: none; font-size: 14px; }
 #palette { padding: 3px 8px; font-size: 11px; margin-right: 12px; }
 .detail-hint { color: var(--ink-soft); font-size: 12px; margin: 0 0 8px; }
-.card-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; border-top: 1px dashed var(--ink-soft); padding-top: 8px; }
+.card-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 8px; border-top: 1px dashed var(--ink-soft); padding-top: 8px; }
+.card { min-width: 0; }
 .card-foot button { padding: 3px 8px; font-size: 11px; white-space: nowrap; }
 select { font-family: inherit; font-size: 14px; cursor: pointer; }
 select option { color: #3B2A1E; }
