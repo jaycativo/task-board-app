@@ -48,8 +48,10 @@ A restyle and simpler cards, then due dates and priorities (written in the
 Obsidian Tasks format, so they also work in Obsidian's own queries), a
 colour-blind palette, a Rejected section, edit and delete, archiving finished
 work, a custom Move menu, a notes drawer that uses your vault's daily notes
-folder, sorting, a styled calendar, and finally the harness you can see in this
-repo (`AGENTS.md` and `.agents/skills/`).
+folder, sorting, a styled calendar, the harness you can see in this repo
+(`AGENTS.md` and `.agents/skills/`), a tidy-up that split two 500 and 800 line
+files into small modules, a Mac Dock app, a favicon, and two styles to choose
+from (Playful and Minimal).
 
 ## What made it go well
 
@@ -62,6 +64,10 @@ repo (`AGENTS.md` and `.agents/skills/`).
   column, and no column ever uses a priority colour.
 - **A harness.** What we learned went into `AGENTS.md` and five short skills, so
   the next session, or the next person, starts with it.
+- **Tests before tidying.** Before splitting the code we wrote HTTP tests for the
+  server's security rules, and a browser smoke test that uses every feature.
+  The same checks passed before and after, which is how we knew the tidy-up
+  changed nothing.
 
 ## Mistakes we kept in on purpose
 
@@ -82,6 +88,11 @@ repo (`AGENTS.md` and `.agents/skills/`).
   plain characters and CSS shapes instead.
 - **Trying the app on the sample file edits the sample.** Test on a copy, and
   keep the test leftovers out of git.
+- **A cleanup command that stopped the wrong thing.** Stopping "the test
+  server" with a pattern that matched every board on the machine also stopped
+  the one Jay was using. Now only the server the assistant started is stopped.
+- **A one-shot animation that vanished.** A sparkle shown for exactly one redraw
+  disappeared whenever another redraw landed first. It now lasts a fixed moment.
 
 ## Make your own
 
@@ -112,8 +123,8 @@ folder.
 
 ## By the numbers
 
-21 commits, all dated the same day. About 1,650 lines of app code and 425 lines
-of tests (39 tests). No dependencies. Five skills.
+29 commits, all dated the same day. About 2,000 lines of app code, 700 lines of
+tests (62 tests), and a 39-check browser smoke test. No dependencies. Five skills.
 
 ## Where to look next
 
