@@ -56,8 +56,16 @@ Playful, but serious about the work. Warm colour, firm outlines, plain words.
 - Buttons inside a `<summary>` must call `preventDefault()` and
   `stopPropagation()`, or they also toggle the section.
 - Dialogs are `<dialog>` elements opened with `showModal()`. The notes drawer
-  is the same element styled as a side panel. Clicking outside it closes it,
-  unless that would lose a draft or an open edit.
+  is the same element styled as a side panel.
+- **The rule: clicking outside any pop-up closes it.** That covers the Move menu,
+  the calendar, the task dialog, and the notes drawer. Layers close one at a time
+  (a click on the backdrop closes the calendar first, then the dialog on the
+  next click). Escape does the same. The one exception: if closing would throw
+  away what someone typed (an edited task dialog, a note draft, an open note
+  edit), stay open and say why in the dialog's status line.
+- Use `onOutsideClick(dialog, handler)` for dialogs. It only fires when the
+  press and the release were both on the backdrop, so selecting text and letting
+  go outside never closes anything, and a keyboard-triggered click never counts.
 - No icon fonts or images. Use plain characters and the odd emoji.
 
 ## Accessibility
@@ -77,9 +85,18 @@ Skip "please", "successfully", and exclamation marks on system messages.
 Empty states invite ("Nothing here. Enjoy it."). Permanent actions say so:
 "Delete … for good? This can't be undone."
 
-## A bug worth remembering
+## Bugs worth remembering
 
 When a click handler redraws the control that was clicked (the calendar's month
 arrows), the clicked button is gone by the time a "click outside" check runs, so
 `contains(event.target)` says it was outside. Read `event.composedPath()` instead:
 it is captured when the click happens.
+
+Browsers run microtasks between event listeners, so a flag cleared with
+`queueMicrotask` is gone before the next listener on the same click sees it. To
+tell two listeners "this click was already handled", remember the event object
+itself and compare it.
+
+A click made in code (`element.click()`) or from the keyboard reports position
+(0, 0). Never decide "outside" from the position alone; check that a mouse press
+really started outside, and test with real mouse clicks.

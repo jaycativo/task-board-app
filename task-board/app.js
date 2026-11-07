@@ -472,9 +472,32 @@ newTaskButton.addEventListener('click', () => {
   closeCalendar();
   taskStatus.textContent = '';
   taskStatus.classList.remove('error');
+  taskSnapshot = taskState();
   taskDialog.showModal();
   taskTitle.focus();
 });
+
+// Runs handler when a click both starts and ends outside the dialog's box (on the dimmed backdrop).
+// Checking where the press began means selecting text and letting go outside never counts.
+function onOutsideClick(dialog, handler) {
+  const outside = event => {
+    const box = dialog.getBoundingClientRect();
+    return event.clientX < box.left || event.clientX > box.right || event.clientY < box.top || event.clientY > box.bottom;
+  };
+  let startedOutside = false;
+  dialog.addEventListener('mousedown', event => { startedOutside = outside(event); });
+  // A keyboard press has no mouse press before it, so it can never count as an outside click.
+  dialog.addEventListener('keydown', () => { startedOutside = false; });
+  dialog.addEventListener('click', event => {
+    const started = startedOutside;
+    startedOutside = false;
+    if (started && outside(event)) handler(event);
+  });
+}
+
+const taskState = () => JSON.stringify([taskTitle.value, taskDue.value, taskPriority.value]);
+let taskSnapshot = '';
+let calendarClosedBy = null;
 
 function fullDate(value) {
   const { year, month, day } = parseDate(value);
@@ -553,6 +576,24 @@ taskDue.addEventListener('input', () => {
 calendar.addEventListener('keydown', event => {
   if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); closeCalendar(); taskDue.focus(); }
 });
+taskDialog.addEventListener('click', event => {
+  // Read the path now: the month arrows redraw the calendar, which removes the button that was clicked.
+  const path = event.composedPath();
+  if (calendar.hidden || path.includes(calendar) || path.includes(taskDue)) return;
+  closeCalendar();
+  // Remember which click closed it, so the same click does not also close the dialog.
+  calendarClosedBy = event;
+});
+// Clicking the backdrop closes the dialog, one layer at a time (the calendar first), unless that would lose what you typed.
+onOutsideClick(taskDialog, event => {
+  if (taskSaving || event === calendarClosedBy) return;
+  if (taskState() !== taskSnapshot) {
+    taskStatus.textContent = 'You have unsaved changes. Save them, or press Cancel to discard.';
+    taskStatus.classList.add('error');
+    return;
+  }
+  taskDialog.close();
+});
 
 function openEditor(task) {
   if (!board || busy) return;
@@ -568,6 +609,7 @@ function openEditor(task) {
   closeCalendar();
   taskStatus.textContent = '';
   taskStatus.classList.remove('error');
+  taskSnapshot = taskState();
   taskDialog.showModal();
   taskTitle.focus();
 }
@@ -678,10 +720,13 @@ noteCancel.addEventListener('click', () => noteDialog.close());
 document.querySelector('#notes-refresh').addEventListener('click', () => loadNoteHistory(noteTask.id));
 noteDialog.addEventListener('cancel', event => { if (noteSaving) event.preventDefault(); });
 // Clicking outside the drawer closes it, unless that would throw away a draft or an open edit.
-noteDialog.addEventListener('click', event => {
-  const box = noteDialog.getBoundingClientRect();
-  const outside = event.clientX < box.left || event.clientX > box.right || event.clientY < box.top || event.clientY > box.bottom;
-  if (outside && !noteSaving && !noteText.value.trim() && !noteDialog.querySelector('.note-edit')) noteDialog.close();
+onOutsideClick(noteDialog, () => {
+  if (noteSaving) return;
+  if (noteText.value.trim() || noteDialog.querySelector('.note-edit')) {
+    setNoteStatus('You have an unsaved note. Save it, or press Close to discard.', true);
+    return;
+  }
+  noteDialog.close();
 });
 document.querySelector('#note-form').addEventListener('submit', async event => {
   event.preventDefault();
