@@ -122,6 +122,85 @@ export function moveTask(text, { revision, id, line, target }) {
   return board.lines.join('\n');
 }
 
+function findTask(board, { id, line }) {
+  const task = board.tasks.find(item => id ? item.id === id : item.line === line);
+  if (!task) throw fail('Task not found. Refresh the board.', 404);
+  return task;
+}
+
+// Changes a task's title, due date, and priority. Its ID, checkbox, and indented details stay as they are.
+export function editTask(text, { revision, id, line, title, due, priority }) {
+  if (typeof title !== 'string' || !title.trim() || title.length > 2000 || /[\r\n]/.test(title)) {
+    throw fail('Enter a task title on one line, with 1 to 2000 characters.');
+  }
+  if (/\s\^[A-Za-z0-9-]+\s*$/.test(title)) throw fail('Enter the title only. The board keeps the task ID.');
+  const typed = readTokens(title);
+  if (typed.due || typed.priority) throw fail('Use the due date and priority fields instead of typing them in the title.');
+  if (due != null && (typeof due !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(due) || !validDate(due))) throw fail('Choose a valid due date.');
+  if (priority != null && !priorityEmoji[priority]) throw fail('Choose high, medium, or low priority.');
+  const board = parseBoard(text);
+  if (revision !== board.revision) throw fail('TODO.md changed. The board has refreshed. Please try again.', 409);
+  const task = findTask(board, { id, line });
+  const first = board.lines[task.line];
+  const ending = first.endsWith('\r') ? '\r' : '';
+  const match = first.replace(/\r$/, '').match(checkbox);
+  const blockId = match[4].match(/\s+\^[A-Za-z0-9-]+\s*$/);
+  const body = [title.trim(), priority && priorityEmoji[priority], due && `📅 ${due}`].filter(Boolean).join(' ') + (blockId ? blockId[0] : '');
+  board.lines[task.line] = `${match[1]}${match[2]}${match[3]}${body}${ending}`;
+  return board.lines.join('\n');
+}
+
+// Permanently removes one task and its indented details.
+export function deleteTask(text, { revision, id, line }) {
+  const board = parseBoard(text);
+  if (revision !== board.revision) throw fail('TODO.md changed. The board has refreshed. Please try again.', 409);
+  const task = findTask(board, { id, line });
+  board.lines.splice(task.line, task.end - task.line);
+  return board.lines.join('\n');
+}
+
+const archiveFile = 'Task Archive.md';
+
+function localDate(now) {
+  return new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(now);
+}
+
+// Adds a Tasks plugin completion date (✅) before the block ID, unless the task already has one.
+function withDoneDate(line, date) {
+  const ending = line.endsWith('\r') ? '\r' : '';
+  const bare = line.replace(/\r$/, '');
+  if (bare.includes('✅')) return line;
+  const id = bare.match(/\s+\^[A-Za-z0-9-]+\s*$/);
+  return (id ? `${bare.slice(0, id.index)} ✅ ${date}${id[0]}` : `${bare} ✅ ${date}`) + ending;
+}
+
+// Takes every Done task off the board. Returns the new file text and the removed task blocks.
+export function archiveDone(text, { revision }, now = new Date()) {
+  const board = parseBoard(text);
+  if (revision !== board.revision) throw fail('TODO.md changed. The board has refreshed. Please try again.', 409);
+  const done = board.tasks.filter(task => task.section === 'Done').sort((a, b) => a.line - b.line);
+  const date = localDate(now);
+  const blocks = done.map(task => {
+    const block = board.lines.slice(task.line, task.end);
+    block[0] = withDoneDate(block[0], date);
+    return block;
+  });
+  for (const task of [...done].reverse()) board.lines.splice(task.line, task.end - task.line);
+  return { text: done.length ? board.lines.join('\n') : text, blocks };
+}
+
+// Adds archived tasks to Task Archive.md at the vault root, under a dated heading.
+export function appendArchive(vaultRoot, blocks, now = new Date()) {
+  const path = join(vaultRoot, archiveFile);
+  let current = '';
+  try { current = readFileSync(path, 'utf8'); } catch (error) { if (error.code !== 'ENOENT') throw error; }
+  const newline = current.includes('\r\n') ? '\r\n' : '\n';
+  const prefix = current ? (current.endsWith('\n') ? newline : newline + newline) : `# Task archive${newline}${newline}`;
+  const body = blocks.map(block => block.map(line => line.replace(/\r$/, '')).join(newline)).join(newline);
+  appendFileSync(path, `${prefix}## Archived ${localDate(now)}${newline}${body}${newline}`, { encoding: 'utf8', mode: 0o600 });
+  return archiveFile;
+}
+
 // Permanently removes every task under the Rejected heading.
 export function clearRejected(text, { revision }) {
   const board = parseBoard(text);
@@ -250,7 +329,7 @@ export function createBoardServer(vaultRoot) {
       } else if (request.method === 'GET' && request.url.startsWith('/api/notes?')) {
         const id = new URL(request.url, origin).searchParams.get('id');
         send(200, { notes: readTaskNotes(vaultRoot, id) });
-      } else if (request.method === 'POST' && ['/api/move', '/api/notes', '/api/tasks', '/api/clear-rejected'].includes(request.url)) {
+      } else if (request.method === 'POST' && ['/api/move', '/api/notes', '/api/tasks', '/api/edit', '/api/delete', '/api/clear-rejected', '/api/archive-done'].includes(request.url)) {
         if (request.headers['content-type'] !== 'application/json') throw fail('Send JSON only.', 415);
         const chunks = [];
         let size = 0;
@@ -269,8 +348,15 @@ export function createBoardServer(vaultRoot) {
         if (!change || typeof change !== 'object') throw fail('Invalid task request.');
         if (request.url === '/api/move' && !(typeof change.id === 'string' || Number.isInteger(change.line))) throw fail('Invalid move.');
         const original = readFileSync(note, 'utf8');
-        const change_ = { '/api/tasks': createTask, '/api/clear-rejected': clearRejected }[request.url] || moveTask;
-        const updated = change_(original, change);
+        let updated;
+        if (request.url === '/api/archive-done') {
+          // The archive is written first, so a failure can only duplicate a task, never lose one.
+          const result = archiveDone(original, change);
+          if (result.blocks.length) appendArchive(vaultRoot, result.blocks);
+          updated = result.text;
+        } else {
+          updated = ({ '/api/tasks': createTask, '/api/edit': editTask, '/api/delete': deleteTask, '/api/clear-rejected': clearRejected }[request.url] || moveTask)(original, change);
+        }
         if (updated !== original) {
           const temporary = `${note}.board-${randomBytes(8).toString('hex')}.tmp`;
           try {
