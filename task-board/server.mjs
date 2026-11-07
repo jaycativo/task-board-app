@@ -129,6 +129,7 @@ function findTask(board, { id, line }) {
 }
 
 // Changes a task's title, due date, and priority. Its ID, checkbox, and indented details stay as they are.
+// A task that has no ID is given one.
 export function editTask(text, { revision, id, line, title, due, priority }) {
   if (typeof title !== 'string' || !title.trim() || title.length > 2000 || /[\r\n]/.test(title)) {
     throw fail('Enter a task title on one line, with 1 to 2000 characters.');
@@ -145,7 +146,14 @@ export function editTask(text, { revision, id, line, title, due, priority }) {
   const ending = first.endsWith('\r') ? '\r' : '';
   const match = first.replace(/\r$/, '').match(checkbox);
   const blockId = match[4].match(/\s+\^[A-Za-z0-9-]+\s*$/);
-  const body = [title.trim(), priority && priorityEmoji[priority], due && `📅 ${due}`].filter(Boolean).join(' ') + (blockId ? blockId[0] : '');
+  let suffix = blockId ? blockId[0] : '';
+  if (!blockId) {
+    // A task without an ID gets one the first time it is edited, so it can have notes and be found reliably.
+    let fresh;
+    do { fresh = `task-${randomBytes(4).toString('hex')}`; } while (board.tasks.some(item => item.id === fresh));
+    suffix = ` ^${fresh}`;
+  }
+  const body = [title.trim(), priority && priorityEmoji[priority], due && `📅 ${due}`].filter(Boolean).join(' ') + suffix;
   board.lines[task.line] = `${match[1]}${match[2]}${match[3]}${body}${ending}`;
   return board.lines.join('\n');
 }

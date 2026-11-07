@@ -63,13 +63,13 @@ details[open] > summary .chevron { transform: rotate(90deg); }
 @media (prefers-reduced-motion: no-preference) { .chevron { transition: transform .15s; } }
 #board { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; align-items: start; padding-bottom: 20px; }
 .column { --accent: var(--tan); background: var(--panel); border: 1.5px solid var(--ink); border-bottom-width: 5px; padding: 8px; border-radius: 8px; min-width: 0; }
-.column-inbox { --accent: var(--lilac); }
-.column-backlog { --accent: var(--sand); }
-.column-next { --accent: var(--sky); }
-.column-now { --accent: var(--rose); }
-.column-in-progress { --accent: var(--teal); }
-.column-done { --accent: var(--slate); }
-.column-rejected { --accent: var(--charcoal); }
+.column-inbox, .accent-inbox { --accent: var(--lilac); }
+.column-backlog, .accent-backlog { --accent: var(--sand); }
+.column-next, .accent-next { --accent: var(--sky); }
+.column-now, .accent-now { --accent: var(--rose); }
+.column-in-progress, .accent-in-progress { --accent: var(--teal); }
+.column-done, .accent-done { --accent: var(--slate); }
+.column-rejected, .accent-rejected { --accent: var(--charcoal); }
 .column-rejected .column-heading { color: #FFF6E9; }
 .column-heading { display: flex; align-items: center; gap: 8px; margin: -8px -8px 8px; padding: 7px 10px; background: var(--accent); border-bottom: 1.5px solid var(--ink); border-radius: 6px 6px 0 0; color: var(--tab-ink); }
 .card.rejected { background: transparent; border-style: dashed; color: var(--done-ink); }

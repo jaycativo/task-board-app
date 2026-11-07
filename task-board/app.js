@@ -211,7 +211,7 @@ function moveMenu(task, text) {
   button.setAttribute('aria-label', `Move task: ${text}`);
   const list = element('div', 'menu-list');
   for (const name of [...board.columns.filter(column => column !== 'Rejected'), 'Rejected']) {
-    const item = element('button', `menu-item column-${name.toLowerCase().replaceAll(' ', '-')}`);
+    const item = element('button', `menu-item accent-${name.toLowerCase().replaceAll(' ', '-')}`);
     item.type = 'button';
     const current = name === task.section;
     item.append(element('span', 'column-dot'), element('span', 'menu-name', labels[name] || name));
@@ -688,8 +688,15 @@ document.querySelector('#task-form').addEventListener('submit', async event => {
       board = await request('/api/board');
       taskRevision = board.revision;
     } catch {}
-    if (editTarget) {
-      // The file changed under the open task, so its position may have moved. Close rather than risk editing the wrong line.
+    const stillThere = editTarget?.id && board.tasks.find(task => task.id === editTarget.id);
+    if (stillThere) {
+      // The task is found by its ID, so saving again with the fresh revision cannot hit the wrong task.
+      editTarget = stillThere;
+      taskStatus.textContent = `${error.message} Your changes are still here; save again to apply them.`;
+      taskStatus.classList.add('error');
+      render();
+    } else if (editTarget) {
+      // No ID to find it by, so its line may have moved. Close rather than risk editing the wrong line.
       taskDialog.close();
       message.textContent = error.message;
       message.classList.add('error');

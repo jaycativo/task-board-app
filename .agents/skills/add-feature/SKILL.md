@@ -32,8 +32,10 @@ stale revision, and a task that does not exist. Run all tests with
 - Ask for confirmation (`confirm`) before anything permanent, and say it
   cannot be undone.
 - Identify a task by its `id`. Use its line number only when it has no ID.
-- If the file changed while a dialog was open, **close the dialog and show the
-  error**. Never retry with an old line number: it can hit the wrong task.
+- If the file changed while a dialog was open: for a task with an ID, keep the
+  dialog and the typed text, take the new revision, and tell the person to save
+  again (the ID finds the task safely). For a task with no ID, **close the dialog
+  and show the error**: never retry with an old line number, it can hit the wrong task.
 - Build elements with `element(tag, className, text)`. Never put task text
   into `innerHTML`.
 - Style and word it using `design-system`.
@@ -63,6 +65,8 @@ changed. Do not commit the sample `TODO.md` after trying the app on it.
 - A `data:` image or inline style is blocked by the security headers.
 - Menus built from `<details>` stay open on outside clicks unless you close them.
 - Giving a column the same colour as a priority chip confused people.
+- Do not reuse the `column-*` class names on other elements (menu items use
+  `accent-*`). A selector like `.column-next` then matches the wrong thing.
 - `node --test task-board/` fails; list the files with a glob instead.
 - Shell scripts that rewrite many files must be checked afterwards with
   `git grep` for leftovers.

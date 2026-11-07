@@ -42,6 +42,10 @@ this folder. Press Ctrl+C to stop it.
 The terminal shows which `TODO.md` will receive changes. The app does not
 convert existing files.
 
+Links that open Obsidian (Open in Obsidian, and the task and note links) use
+your vault's folder name as its name. If you gave the vault a different name in
+Obsidian, those links will not open until the names match.
+
 ## Set it up with an AI assistant
 
 Not sure how to bring your own tasks over? Give this prompt to an AI assistant
@@ -140,7 +144,7 @@ backup exists, and ask me if anything is unclear.
   `🔽` low for priority. The board changes only these tokens and leaves
   everything else on the line, including indented details, untouched.
 - Give tasks a unique block ID such as `^task-first`. Tasks made in the board
-  get one automatically.
+  get one automatically, and a task without one gets one the first time you edit it.
 - The first rejection adds a `## Rejected` heading at the end of the file.
   Rejected tasks are written as `- [-]`, which the Tasks plugin treats as
   cancelled.

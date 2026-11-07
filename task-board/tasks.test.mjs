@@ -175,3 +175,20 @@ test('the archive file gets a title once and a dated section each time', () => {
     assert.match(archive, /- \[x\] One ✅ 2026-11-07 \^task-one\n\n## Archived 2026-11-07\n- \[x\] Two[^\n]*\n  - detail\n$/);
   } finally { rmSync(vault, { recursive: true, force: true }); }
 });
+
+test('editing a task without an ID gives it one and keeps its details', () => {
+  const noId = sample.replace('- [ ] Open the board and move a card ⏫ ^task-first-move', '- [ ] A task with no ID ⏫\n  - keep me');
+  const board = parseBoard(noId);
+  const line = board.tasks.find(item => item.text.startsWith('A task with no ID')).line;
+  const edited = editTask(noId, { revision: board.revision, line, title: 'A task with no ID, edited' });
+  assert.match(edited, /- \[ \] A task with no ID, edited \^task-[a-f0-9]{8}\n  - keep me/);
+  const task = parseBoard(edited).tasks.find(item => item.title === 'A task with no ID, edited');
+  assert.match(task.id, /^task-[a-f0-9]{8}$/);
+  assert.equal(task.section, 'Now');
+});
+
+test('editing a task that has an ID leaves the ID alone', () => {
+  const { revision } = parseBoard(sample);
+  const edited = editTask(sample, { revision, id: 'task-first-move', title: 'Move a card' });
+  assert.match(edited, /- \[ \] Move a card \^task-first-move/);
+});

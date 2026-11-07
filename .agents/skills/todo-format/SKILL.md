@@ -49,7 +49,8 @@ read, what it may change, and what it must leave alone.
 - Dates are `YYYY-MM-DD` and must be real dates. `2026-02-31` is ignored when
   reading and rejected when writing.
 - IDs match `[A-Za-z0-9-]+`. New ones are `task-` plus 8 hex characters.
-  A task without an ID can be moved and edited by line number only.
+  A task without an ID can be moved and edited by line number, and gets an ID
+  the first time it is edited. Notes need an ID.
 - Keep the file's line endings (`\n` or `\r\n`) when you rewrite lines.
 
 ## Rejected
