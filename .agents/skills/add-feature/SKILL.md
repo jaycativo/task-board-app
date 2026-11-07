@@ -54,7 +54,6 @@ looked at both the page and the file on disk.
 ## 5. Update the docs in the same change
 
 - `README.md`: what a person can now do, in plain words.
-- `AGENTS.md`: the status list.
 - The skill that describes the thing you changed.
 
 ## 6. Commit and push
