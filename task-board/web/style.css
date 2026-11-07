@@ -207,8 +207,8 @@ footer { display: flex; justify-content: space-between; gap: 16px; color: var(--
 .title-hl { background: var(--butter); color: #3B2A1E; padding: 0 .22em; border-radius: 4px; }
 
 /* Playful: raised buttons that press down. */
-:root:not([data-style="minimal"]) :is(.actions .button, .actions button, .card-foot button, .move-button, .note-buttons button, .heading-action) { box-shadow: 0 3px 0 var(--line); }
-:root:not([data-style="minimal"]) :is(.actions .button, .actions button, .card-foot button, .move-button, .note-buttons button, .heading-action):active { transform: translateY(2px); box-shadow: 0 1px 0 var(--line); }
+:root:not([data-style="minimal"]) :is(.actions .button, .actions button, .foot-actions button, .card-foot > button, .move-button, .note-buttons button, .heading-action) { box-shadow: 0 3px 0 var(--line); }
+:root:not([data-style="minimal"]) :is(.actions .button, .actions button, .foot-actions button, .card-foot > button, .move-button, .note-buttons button, .heading-action):active { transform: translateY(2px); box-shadow: 0 1px 0 var(--line); }
 
 /* Playful: a little glyph by each column's name. */
 :root:not([data-style="minimal"]) .column-backlog h2::before { content: '◌ '; }
