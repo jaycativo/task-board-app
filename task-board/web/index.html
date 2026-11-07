@@ -4,6 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Good work, friend · Task board</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="/favicon.png" type="image/png" sizes="64x64">
   <link rel="stylesheet" href="/style.css">
   <script src="/theme.js"></script>
   <script src="/app.js" type="module"></script>
@@ -23,7 +25,7 @@
   <main>
     <div class="search-bar">
       <label for="task-search" class="sr-only">Find a task</label>
-      <input id="task-search" type="search" placeholder="Search by title or paste a task link…" autocomplete="off" aria-controls="board intake">
+      <input id="task-search" type="search" placeholder="Search tasks, or paste a link…" autocomplete="off" aria-controls="board intake">
       <button id="search-clear" type="button" hidden>Clear</button>
       <span id="search-count" role="status" aria-live="polite"></span>
       <div class="sort" role="group" aria-label="Sort cards">

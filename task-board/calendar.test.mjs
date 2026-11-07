@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { formatDate, parseDate, monthGrid, shiftMonth } from './calendar.mjs';
+import { formatDate, parseDate, monthGrid, shiftMonth } from './web/calendar.mjs';
 
 test('formats a date with padded month and day', () => {
   assert.equal(formatDate(2026, 10, 7), '2026-11-07');

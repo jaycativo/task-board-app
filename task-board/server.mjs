@@ -1,7 +1,7 @@
 // The web server: serves the page, answers the page's requests, and starts the board from the command line.
 // The rules for TODO.md and for notes live in board.mjs, archive.mjs, and notes.mjs. This file only routes.
 import http from 'node:http';
-import { readFileSync, realpathSync } from 'node:fs';
+import { readFileSync, readdirSync, realpathSync } from 'node:fs';
 import { dirname, join, basename, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
@@ -12,10 +12,12 @@ import { archiveDone, appendArchive } from './archive.mjs';
 import { notesSettings, appendTaskNote, readTaskNotes, countTaskNotes, editTaskNote, deleteTaskNote } from './notes.mjs';
 
 const directory = dirname(fileURLToPath(import.meta.url));
+const webDirectory = join(directory, 'web');
 const MAX_BODY_BYTES = 40000;
 
-// The only files ever served to the page (plus index.html at "/"). Nothing else is reachable.
-const pageFiles = ['app.js', 'search.mjs', 'calendar.mjs', 'theme.js', 'style.css'];
+// The only files ever served to the page: what is in the web folder when the board starts
+// (plus index.html at "/"). The list is made once, never from a request, so nothing else is reachable.
+const pageFiles = readdirSync(webDirectory).filter(name => /^[A-Za-z0-9-]+\.(js|mjs|css|svg|png)$/.test(name));
 
 const securityHeaders = {
   'Cache-Control': 'no-store',
@@ -23,7 +25,11 @@ const securityHeaders = {
   'Content-Security-Policy': "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'",
 };
 
-const mimeType = file => (/\.m?js$/.test(file) ? 'text/javascript' : file.endsWith('.css') ? 'text/css' : 'text/html');
+const contentTypes = {
+  js: 'text/javascript; charset=utf-8', mjs: 'text/javascript; charset=utf-8', css: 'text/css; charset=utf-8',
+  html: 'text/html; charset=utf-8', svg: 'image/svg+xml', png: 'image/png',
+};
+const contentType = file => contentTypes[file.split('.').pop()];
 
 // Changes to TODO.md. Each takes the file text and the request, and returns the new file text.
 const taskChanges = {
@@ -101,7 +107,7 @@ export function createBoardServer(vaultRoot, { notesFolder } = {}) {
           return send(200, { notes: readTaskNotes(vaultRoot, id, folder) });
         }
         const file = url === '/' ? 'index.html' : pageFiles.find(name => `/${name}` === url);
-        if (file) return send(200, readFileSync(join(directory, file)), `${mimeType(file)}; charset=utf-8`);
+        if (file) return send(200, readFileSync(join(webDirectory, file)), contentType(file));
       }
 
       if (method === 'POST' && Object.hasOwn(noteChanges, url)) {

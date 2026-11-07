@@ -78,10 +78,10 @@ test('changes must be JSON, valid, and small', async t => {
 
 test('only the page files are served, never server code, tests, or paths outside', async t => {
   const { call } = await start(t);
-  for (const path of ['/', '/app.js', '/style.css', '/search.mjs', '/calendar.mjs', '/theme.js']) {
+  for (const path of ['/', '/app.js', '/style.css', '/search.mjs', '/calendar.mjs', '/dates.mjs', '/board-view.js', '/task-dialog.js', '/theme.js', '/favicon.svg', '/favicon.png']) {
     assert.equal((await call('GET', path)).status, 200, path);
   }
-  for (const path of ['/server.mjs', '/board.mjs', '/notes.mjs', '/server.test.mjs', '/connection.test.mjs', '/../TODO.md', '/%2e%2e/TODO.md', '/..%2fTODO.md', '/TODO.md', '/index.html', '//etc/passwd', '/nope', '/api/nope']) {
+  for (const path of ['/server.mjs', '/board.mjs', '/notes.mjs', '/archive.mjs', '/errors.mjs', '/safe-write.mjs', '/web/app.js', '/web', '/server.test.mjs', '/connection.test.mjs', '/../TODO.md', '/%2e%2e/TODO.md', '/..%2fTODO.md', '/TODO.md', '/index.html', '//etc/passwd', '/nope', '/api/nope']) {
     assert.equal((await call('GET', path)).status, 404, path);
   }
 });
@@ -99,6 +99,8 @@ test('every response carries the security headers', async t => {
   assert.match((await call('GET', '/')).headers['content-type'], /text\/html/);
   assert.match((await call('GET', '/app.js')).headers['content-type'], /text\/javascript/);
   assert.match((await call('GET', '/style.css')).headers['content-type'], /text\/css/);
+  assert.equal((await call('GET', '/favicon.svg')).headers['content-type'], 'image/svg+xml');
+  assert.equal((await call('GET', '/favicon.png')).headers['content-type'], 'image/png');
 });
 
 test('a move is saved to the file, and a stale revision is refused', async t => {

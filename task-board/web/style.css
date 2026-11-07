@@ -45,9 +45,9 @@ main { padding: 14px 40px 40px; }
 #task-search { flex: 1; min-width: 180px; max-width: 460px; padding: 11px 14px; border: 1.5px solid var(--ink); border-bottom-width: 4px; border-radius: 8px; background: var(--card); font-size: 15px; }
 #task-search::placeholder { color: var(--ink-soft); opacity: 1; }
 #search-clear { padding: 6px 10px; }
-.sort { display: flex; align-items: center; margin-left: auto; }
+.sort { display: flex; flex: none; align-items: center; margin-left: auto; }
 .sort-label { font: 600 12px var(--mono); color: var(--ink-soft); margin-right: 8px; }
-.sort button, .seg button { border-radius: 0; margin-left: -1.5px; padding: 6px 10px; }
+.sort button, .seg button { border-radius: 0; margin-left: -1.5px; padding: 6px 10px; white-space: nowrap; }
 .sort button:first-of-type, .seg button:first-of-type { border-radius: 6px 0 0 6px; margin-left: 0; }
 .sort button:last-of-type, .seg button:last-of-type { border-radius: 0 6px 6px 0; }
 .sort button[aria-pressed="true"], .seg button[aria-pressed="true"] { background: var(--butter); color: #3B2A1E; position: relative; }
@@ -191,3 +191,10 @@ footer { display: flex; justify-content: space-between; gap: 16px; color: var(--
 
 .theme { display: inline-flex; vertical-align: middle; margin-right: 12px; }
 .theme button { padding: 3px 8px; font-size: 11px; }
+
+/* Narrow screens: the search field gets a row of its own, and the sort buttons wrap as a group, never inside a label. */
+@media (max-width: 700px) {
+  #task-search { flex-basis: 100%; max-width: none; }
+  .sort { margin-left: 0; }
+  .actions { width: 100%; }
+}

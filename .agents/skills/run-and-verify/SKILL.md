@@ -61,7 +61,23 @@ node --test task-board/*.test.mjs
 
 All tests must pass. Say how many.
 
-## 5. Finish clean
+## 5. Run the page smoke test
+
+The tests above cannot see the page. `smoke.js` (next to this file) uses every feature once in a
+real browser: it creates, edits, moves, drags, sorts, adds notes, picks dates, switches theme,
+archives, and deletes, and checks the page after each. It was written before the page was split into
+modules, and passing it before and after is how we knew the split changed nothing.
+
+1. Start a **fresh scratch copy of the sample** (step 1). The test writes to it.
+2. Open the board's URL in a browser tool.
+3. Run the whole of `smoke.js` in the page (paste it into the console, or give it to a tool that runs
+   JavaScript). It returns `{ passed, failed, failures }`. Expect `failed: 0`.
+4. When you add something people can do on the page, add a check for it to `smoke.js`.
+
+Use real clicks for anything about outside clicks or hovering. The script's `clickAt` sends a mouse
+press and release at a point, which is the closest a script gets.
+
+## 6. Finish clean
 
 - Stop the server you started, and only that one.
 - `git status`: only the files you meant to change are modified. The sample

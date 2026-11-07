@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { sortTasks, filterTasks } from './search.mjs';
+import { sortTasks, filterTasks } from './web/search.mjs';
 
 const task = (line, title, priority = null, due = null) => ({ line, title, priority, due });
 const tasks = [

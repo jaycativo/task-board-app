@@ -10,7 +10,7 @@ Playful, but serious about the work. Warm colour, firm outlines, plain words.
 ## Look
 
 - Tan page, cream panels, white cards. Colours are CSS variables at the top of
-  `style.css`; use them, never raw hex in a rule. Light and dark follow the system.
+  `web/style.css`; use them, never raw hex in a rule. Light and dark follow the system.
 - Everything is outlined in ink at `1.5px`. Column panels and dialogs get a
   thicker `5px` bottom edge. Corners are `6px` (controls) to `8px` (panels).
 - Headings, labels, chips, and buttons use the monospace stack in bold at
@@ -31,11 +31,11 @@ Playful, but serious about the work. Warm colour, firm outlines, plain words.
   `▲ high`, `◆ med`, `▼ low`. A footer toggle swaps in a colour-blind palette
   (blue, yellow, grey) through `data-palette="cb"`, remembered in localStorage.
 - Dark mode redefines the variables. A footer switch (Auto, Light, Dark) can
-  override the system, so the dark colours live in **two places in `style.css`
+  override the system, so the dark colours live in **two places in `web/style.css`
   that must stay in sync**: `:root:not([data-theme="light"])` inside
   `prefers-color-scheme: dark` (Auto on a dark system), and `:root[data-theme="dark"]`.
   The choice is the `data-theme` attribute on `<html>`, saved in localStorage as
-  `theme`. `theme.js` is a classic script in the head that sets the attribute
+  `theme`. `web/theme.js` is a classic script in the head that sets the attribute
   before the page is drawn, so there is no flash of the wrong colours (the
   security headers forbid inline scripts, so it has to be a file).
   Column tabs use `--tab-ink` so their text stays readable on both.
@@ -52,7 +52,7 @@ Playful, but serious about the work. Warm colour, firm outlines, plain words.
     its own colour (tangerine, butter, sage), so people see what they will get.
     None is a neutral tan, so butter only ever means medium.
   - Due date is a text field that takes `YYYY-MM-DD`. Clicking it (or pressing ↓)
-    opens a small inline calendar (`calendar.mjs`: Monday first, today outlined).
+    opens a small inline calendar (`web/calendar.mjs`: Monday first, today outlined).
     It stays open while you pick, so people can try dates: picking a day, Today,
     Clear, and the month arrows do not close it. Only Done or Escape closes it
     (Escape closes just the calendar, not the dialog). It follows what you type.
@@ -82,8 +82,9 @@ Playful, but serious about the work. Warm colour, firm outlines, plain words.
 - Keep the 3px tangerine focus ring. Status messages use `role="status"`.
 - Respect `prefers-reduced-motion`: animate only inside
   `@media (prefers-reduced-motion: no-preference)`.
-- Phone width is not a priority, but cards must never overflow their column:
-  button rows wrap.
+- Phone width is not a priority, but it must not look broken: cards never overflow their column
+  (button rows wrap), button labels never wrap inside themselves (`white-space: nowrap`), and on
+  narrow screens the search field gets its own row and the sort buttons wrap as a group.
 
 ## Voice
 

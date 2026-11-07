@@ -24,8 +24,9 @@ because of the rules below. Do not weaken them to make a feature easier.
 - **Stay in the vault.** The server may touch only `TODO.md`, `TASK-ARCHIVE.md`,
   and the notes folder. Resolve folders and refuse any that leave the vault.
   Never build a path from request input except an ID that matched its pattern.
-- **Static files are a fixed list.** Only the files named in `pageFiles` in `server.mjs` are
-  served. A new frontend file must be added to that list on purpose.
+- **Static files are a fixed list.** Only the scripts, styles, `.svg`, and `.png` files in `task-board/web/` are
+  served. The list is read once when the board starts, never from a request. Server code and
+  tests live outside `web/`, so they can never be served: do not put anything private in `web/`.
 - **Strict CSP.** `default-src 'self'`, no inline scripts or styles, and
   `img-src 'self'`. That means no `data:` URIs: no inline SVG backgrounds, and
   no external fonts, images, or scripts. Use CSS and plain characters for icons.

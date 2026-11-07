@@ -1,0 +1,229 @@
+// Drawing the board: the header counts, the columns, and the cards.
+// It never changes anything itself. When someone acts, it calls one of the handlers it was given.
+import { filterTasks, sortTasks } from './search.mjs';
+import { dueLabel, fullDate } from './dates.mjs';
+import { element, appendText, noteLink } from './dom.js';
+import { state } from './state.js';
+
+const labels = { Backlog: 'Later', 'In Progress': 'In progress' };
+const descriptions = { Backlog: 'Someday, maybe', Next: 'Coming into focus', Now: 'Ready for you', 'In Progress': 'Already in motion', Done: 'Look at you go' };
+const priorities = { high: ['▲', 'high'], medium: ['◆', 'med'], low: ['▼', 'low'] };
+
+// The name people see for a column ("Later" for Backlog).
+export const columnLabel = name => labels[name] || name;
+const slug = name => name.toLowerCase().replaceAll(' ', '-');
+
+// handlers: onMove(task, column), onEdit(task), onNotes(task, title), onArchive(count), onDeleteRejected(count)
+export function createBoardView({ onMove, onEdit, onNotes, onArchive, onDeleteRejected }) {
+  const boardElement = document.querySelector('#board');
+  const intakeElement = document.querySelector('#intake');
+  const rejectedElement = document.querySelector('#rejected');
+  const searchInput = document.querySelector('#task-search');
+  const searchClear = document.querySelector('#search-clear');
+  const newTaskButton = document.querySelector('#new-task');
+  const wantOpen = new Set(); // panels to open on the next draw, so people see where a task went
+
+  function dueChip(due, checked) {
+    if (checked) {
+      const chip = element('span', 'chip due-done', due);
+      chip.title = fullDate(due);
+      return chip;
+    }
+    const { text, late } = dueLabel(due);
+    const chip = element('span', `chip due${late ? ' late' : text === 'today' ? ' today' : ''}`, text);
+    chip.title = fullDate(due);
+    return chip;
+  }
+
+  // A small menu in the app's own style, in place of the browser's native dropdown.
+  function moveMenu(task, text) {
+    const menu = element('details', 'move-menu');
+    const button = element('summary', 'move-button', `Move: ${columnLabel(task.section)}`);
+    button.setAttribute('aria-label', `Move task: ${text}`);
+    const list = element('div', 'menu-list');
+    for (const name of [...state.board.columns.filter(column => column !== 'Rejected'), 'Rejected']) {
+      const item = element('button', `menu-item accent-${slug(name)}`);
+      item.type = 'button';
+      const current = name === task.section;
+      item.append(element('span', 'column-dot'), element('span', 'menu-name', columnLabel(name)));
+      if (current) {
+        item.append(element('span', 'menu-check', '✓'));
+        item.setAttribute('aria-current', 'true');
+      }
+      item.addEventListener('click', () => {
+        menu.open = false;
+        if (!current) onMove(task, name);
+      });
+      list.append(item);
+    }
+    menu.addEventListener('keydown', event => {
+      if (event.key === 'Escape') { menu.open = false; button.focus(); }
+    });
+    menu.append(button, list);
+    return menu;
+  }
+
+  function taskButton(className, label, ariaLabel, onClick) {
+    const button = element('button', className, label);
+    button.type = 'button';
+    button.setAttribute('aria-label', ariaLabel);
+    button.addEventListener('click', onClick);
+    return button;
+  }
+
+  function card(task) {
+    const rejected = task.section === 'Rejected';
+    const node = element('article', `card${task.checked ? ' checked' : ''}${rejected ? ' rejected' : ''}`);
+    node.draggable = true;
+    const text = task.title ?? task.text;
+
+    // Title, with " — [[source]]" links shown as a smaller line underneath.
+    const title = element('p', 'task-title');
+    const split = text.lastIndexOf(' — ');
+    const hasSources = split >= 0 && /^(\[\[.*?\]\])(,\s*\[\[.*?\]\])*$/.test(text.slice(split + 3));
+    appendText(title, hasSources ? text.slice(0, split) : text);
+    node.append(title);
+    if (hasSources) {
+      const sources = element('p', 'sources');
+      appendText(sources, text.slice(split + 3));
+      node.append(sources);
+    }
+
+    if (task.due || task.priority) {
+      const chips = element('div', 'chips');
+      if (task.due) chips.append(dueChip(task.due, task.checked));
+      if (task.priority) {
+        const [symbol, word] = priorities[task.priority];
+        chips.append(element('span', `chip priority-${task.priority}`, `${symbol} ${word}`));
+      }
+      node.append(chips);
+    }
+    if (task.end > task.line + 1) node.append(element('p', 'detail-hint', 'More detail in TODO.md'));
+
+    const foot = element('div', 'card-foot');
+    const actions = element('div', 'foot-actions');
+    if (task.id) {
+      const count = state.noteCounts[task.id];
+      const notes = taskButton('add-note', count ? `Notes · ${count}` : 'Notes', `Notes for ${text}`, () => onNotes(task, text));
+      notes.disabled = state.busy;
+      actions.append(notes);
+    }
+    actions.append(taskButton('edit', 'Edit', `Edit: ${text}`, () => onEdit(task)));
+    foot.append(actions);
+    foot.append(rejected
+      ? taskButton('restore', '↩ Restore', `Restore to Inbox: ${text}`, () => onMove(task, 'Inbox'))
+      : moveMenu(task, text));
+    node.append(foot);
+
+    node.addEventListener('dragstart', event => {
+      if (state.busy) { event.preventDefault(); return; }
+      state.dragging = true;
+      event.dataTransfer.setData('text/plain', String(task.line));
+      event.dataTransfer.effectAllowed = 'move';
+      node.classList.add('dragging');
+    });
+    node.addEventListener('dragend', () => {
+      state.dragging = false;
+      node.classList.remove('dragging');
+      document.querySelectorAll('.drop-target').forEach(column => column.classList.remove('drop-target'));
+    });
+    return node;
+  }
+
+  function headingActions(name, counts) {
+    if (name === 'Rejected' && counts.rejected) {
+      return taskButton('trash heading-action', '🗑 Delete all', `Delete all ${counts.rejected} rejected tasks`, event => {
+        event.preventDefault(); // the button sits in a summary, so it must not also toggle the panel
+        event.stopPropagation();
+        onDeleteRejected(counts.rejected);
+      });
+    }
+    if (name === 'Done' && counts.done) {
+      return taskButton('archive heading-action', '📦 Archive all', `Archive all ${counts.done} done tasks`, () => onArchive(counts.done));
+    }
+    return null;
+  }
+
+  function render() {
+    const { board } = state;
+    newTaskButton.disabled = state.busy;
+    const focusedTask = document.activeElement?.getAttribute('aria-label');
+    const expanded = new Set([...document.querySelectorAll('#intake details[open], #rejected details[open]')].map(node => node.dataset.section));
+    for (const name of wantOpen) expanded.add(name);
+    wantOpen.clear();
+    boardElement.replaceChildren();
+    intakeElement.replaceChildren();
+    rejectedElement.replaceChildren();
+
+    const counts = { done: board.tasks.filter(task => task.checked).length, rejected: board.tasks.filter(task => task.section === 'Rejected').length };
+    document.querySelector('#open-note').href = noteLink('TODO');
+    document.querySelector('#total').textContent = `${board.tasks.length - counts.done - counts.rejected} open · ${counts.done} complete`;
+    const searching = Boolean(searchInput.value.trim());
+    const matching = filterTasks(board.tasks, searchInput.value);
+    searchClear.hidden = !searchInput.value;
+    document.querySelector('#search-count').textContent = searching ? `${matching.length} of ${board.tasks.length} tasks` : `${board.tasks.length} tasks`;
+    document.querySelector('#search-empty').hidden = !searching || matching.length > 0;
+
+    for (const name of board.columns) {
+      const intake = name === 'Inbox';
+      const collapsible = intake || name === 'Rejected';
+      const column = element(collapsible ? 'details' : 'section', `column column-${slug(name)}`);
+      const tasks = sortTasks(matching.filter(task => task.section === name), state.sortMode);
+
+      const heading = element(collapsible ? 'summary' : 'div', 'column-heading');
+      if (collapsible) {
+        const chevron = element('span', 'chevron');
+        chevron.setAttribute('aria-hidden', 'true');
+        heading.append(chevron);
+      }
+      heading.append(element('h2', '', columnLabel(name)), element('span', 'count', String(tasks.length)));
+      const action = headingActions(name, counts);
+      if (action) heading.append(action);
+      column.append(heading);
+      if (!collapsible) column.append(element('p', 'column-description', descriptions[name]));
+
+      const list = element('div', 'cards');
+      if (!tasks.length) list.append(element('p', 'empty', searching ? 'No matches here.' : collapsible ? 'All clear here.' : 'Nothing here. Enjoy it.'));
+      for (const task of tasks) list.append(card(task));
+      column.append(list);
+
+      // Dropping a card on a column moves it there.
+      column.addEventListener('dragover', event => {
+        if (!state.dragging || state.busy) return;
+        event.preventDefault();
+        if (collapsible) column.open = true;
+        column.classList.add('drop-target');
+      });
+      column.addEventListener('dragleave', event => { if (!column.contains(event.relatedTarget)) column.classList.remove('drop-target'); });
+      column.addEventListener('drop', event => {
+        event.preventDefault();
+        column.classList.remove('drop-target');
+        const task = board.tasks.find(item => item.line === Number(event.dataTransfer.getData('text/plain')));
+        state.dragging = false;
+        if (task) onMove(task, name);
+      });
+
+      if (collapsible) {
+        column.dataset.section = name;
+        column.open = searching ? tasks.length > 0 : expanded.has(name);
+        (intake ? intakeElement : rejectedElement).append(column);
+      } else boardElement.append(column);
+    }
+    if (focusedTask) {
+      [...document.querySelectorAll('.move-button')].find(button => button.getAttribute('aria-label') === focusedTask)?.focus({ preventScroll: true });
+    }
+  }
+
+  // A click anywhere else closes an open Move menu.
+  document.addEventListener('click', event => {
+    document.querySelectorAll('.move-menu[open]').forEach(menu => { if (!menu.contains(event.target)) menu.open = false; });
+  });
+
+  return {
+    render,
+    // Open this panel (Inbox or Rejected) the next time the board is drawn.
+    showPanel: name => wantOpen.add(name),
+    // While a change is being saved, the buttons on the board wait.
+    disableActions: () => document.querySelectorAll('.card-foot button, .heading-action').forEach(button => { button.disabled = true; }),
+  };
+}

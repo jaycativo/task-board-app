@@ -25,6 +25,7 @@ people's vaults, so keep it simple. Users never read this file; they read
 bash start.sh                      # sample TODO.md in this folder
 bash start.sh "/path/to/vault"     # a vault; add --notes-folder <name> to pick the notes folder
 node --test task-board/*.test.mjs  # all tests (list the files; a directory path fails)
+# the page itself has a browser smoke test: .agents/skills/run-and-verify/smoke.js
 ```
 
 ## Layout
@@ -34,13 +35,18 @@ node --test task-board/*.test.mjs  # all tests (list the files; a directory path
 - `task-board/archive.mjs`: moving Done tasks to `TASK-ARCHIVE.md`.
 - `task-board/notes.mjs`: where notes live, and adding, editing, and deleting them.
 - `task-board/errors.mjs`, `safe-write.mjs`: the shared error type and the safe file write.
-- `task-board/app.js`: the whole frontend. `search.mjs` holds search and sorting,
-  `calendar.mjs` the date picker's date logic.
-- `task-board/style.css`: design tokens at the top.
-- `task-board/theme.js`: applies the saved light or dark choice before the page is drawn.
+- `task-board/web/`: everything the browser loads, and nothing else is served.
+  - `app.js` starts the page and connects the pieces. The rest do one job each: `state.js` (shared
+    facts), `api.js` (server calls), `status.js` (the status line), `dom.js` (small helpers),
+    `board-view.js` (draws the board and cards), `task-dialog.js` (new, edit, delete),
+    `notes-drawer.js`, `date-picker.js`, `preferences.js` (theme, palette, sort).
+  - Pure logic is `.mjs` so Node can test it: `search.mjs` (search and sorting), `calendar.mjs`
+    (calendar days), `dates.mjs` (friendly date labels). Code that touches the page is `.js`.
+  - `style.css` (design tokens at the top), `index.html`, `favicon.svg` and `.png`, and
+    `theme.js`, which applies the saved light or dark choice before the page is drawn.
 - `scripts/`: builds the Mac Dock app (`make-mac-app.sh`) and its icon (`make-icon.sh`,
   `icon.html`, `task-board.icns`). The built `.app` is never committed.
-- `task-board/*.test.mjs`: one test file per module (board, archive, notes, search, calendar),
+- `task-board/*.test.mjs`: one test file per module (board, archive, notes, search, calendar, dates),
   plus `server.test.mjs` (the request rules over HTTP) and `connection.test.mjs` (starting the board).
 
 ## Skills

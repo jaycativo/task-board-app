@@ -14,8 +14,8 @@ Follow these steps in order. Read the other skills they point to.
   (`server.mjs`) reads the file, calls the function, and writes the result safely.
 - Notes (`notes.mjs`) and the archive (`archive.mjs`) also write their own files, so
   test them against a scratch folder.
-- Display-only behaviour (search, sorting) lives in `search.mjs` as a pure
-  function. It must not change what is written to the file.
+- Display-only behaviour (search, sorting, date labels) lives in `web/*.mjs` as pure
+  functions that Node can test. It must not change what is written to the file.
 - Anything that reads or writes vault files: read `todo-format`.
 - Anything that adds an endpoint: read `server-safety`.
 
@@ -41,6 +41,10 @@ stale revision, and a task that does not exist. Run all tests with
 - Build elements with `element(tag, className, text)`. Never put task text
   into `innerHTML`.
 - Style and word it using `design-system`.
+- Page code is split by job (see `AGENTS.md`). Put new behaviour in the module that owns it,
+  or a new small module, not in `app.js`. A module gets what it needs when it is created
+  (`createBoardView({ onMove, ... })`), never by importing a module that imports it.
+- Add a check to `smoke.js` for anything new someone can do on the page.
 
 ## 4. Run it for real
 
