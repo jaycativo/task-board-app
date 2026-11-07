@@ -2,6 +2,7 @@ import { filterTasks } from './search.mjs';
 
 const boardElement = document.querySelector('#board');
 const intakeElement = document.querySelector('#intake');
+const rejectedElement = document.querySelector('#rejected');
 const message = document.querySelector('#message');
 const refreshButton = document.querySelector('#refresh');
 const noteDialog = document.querySelector('#note-dialog');
@@ -112,7 +113,8 @@ function dueChip(due, checked) {
 }
 
 function card(task) {
-  const node = element('article', `card${task.checked ? ' checked' : ''}`);
+  const rejected = task.section === 'Rejected';
+  const node = element('article', `card${task.checked ? ' checked' : ''}${rejected ? ' rejected' : ''}`);
   node.draggable = true;
   const text = task.title ?? task.text;
   const title = element('p', 'task-title');
@@ -139,6 +141,7 @@ function card(task) {
   }
   if (task.end > task.line + 1) node.append(element('p', 'detail-hint', 'More detail in TODO.md'));
   const foot = element('div', 'card-foot');
+  const actions = element('div', 'foot-actions');
   if (task.id) {
     const addNote = element('button', 'add-note', 'Notes');
     addNote.type = 'button';
@@ -155,12 +158,27 @@ function card(task) {
       noteText.focus();
       loadNoteHistory(task.id);
     });
-    foot.append(addNote);
-  } else foot.append(element('span'));
+    actions.append(addNote);
+  }
+  if (task.section === 'Inbox') {
+    const reject = element('button', 'reject', 'Reject');
+    reject.type = 'button';
+    reject.setAttribute('aria-label', `Reject: ${text}`);
+    reject.addEventListener('click', () => move(task, 'Rejected'));
+    actions.append(reject);
+  }
+  foot.append(actions);
+  if (rejected) {
+    const restore = element('button', 'restore', '↩ Restore');
+    restore.type = 'button';
+    restore.setAttribute('aria-label', `Restore to Inbox: ${text}`);
+    restore.addEventListener('click', () => move(task, 'Inbox'));
+    foot.append(restore);
+  } else {
   const label = element('label', 'move-label', 'Move ');
   const select = element('select');
   select.setAttribute('aria-label', `Move task: ${text}`);
-  for (const name of board.columns) {
+  for (const name of board.columns.filter(name => name !== 'Rejected')) {
     const option = element('option', '', labels[name] || name);
     option.value = name;
     option.selected = name === task.section;
@@ -170,6 +188,7 @@ function card(task) {
   select.addEventListener('change', () => move(task, select.value));
   label.append(select);
   foot.append(label);
+  }
   node.append(foot);
   node.addEventListener('dragstart', event => {
     if (busy) { event.preventDefault(); return; }
@@ -190,12 +209,14 @@ function render() {
   newTaskButton.disabled = busy;
   const active = document.activeElement;
   const focusedTask = active?.getAttribute('aria-label');
-  const expanded = new Set([...intakeElement.querySelectorAll('details[open]')].map(node => node.dataset.section));
+  const expanded = new Set([...document.querySelectorAll('#intake details[open], #rejected details[open]')].map(node => node.dataset.section));
   boardElement.replaceChildren();
   intakeElement.replaceChildren();
+  rejectedElement.replaceChildren();
   document.querySelector('#open-note').href = noteLink('TODO');
   const done = board.tasks.filter(task => task.checked).length;
-  document.querySelector('#total').textContent = `${board.tasks.length - done} open · ${done} complete`;
+  const rejectedCount = board.tasks.filter(task => task.section === 'Rejected').length;
+  document.querySelector('#total').textContent = `${board.tasks.length - done - rejectedCount} open · ${done} complete`;
   const searching = Boolean(searchInput.value.trim());
   const matching = filterTasks(board.tasks, searchInput.value);
   searchClear.hidden = !searchInput.value;
@@ -203,20 +224,28 @@ function render() {
   document.querySelector('#search-empty').hidden = !searching || matching.length > 0;
   for (const name of board.columns) {
     const intake = name === 'Inbox';
-    const column = element(intake ? 'details' : 'section', `column column-${name.toLowerCase().replaceAll(' ', '-')}`);
+    const collapsible = intake || name === 'Rejected';
+    const column = element(collapsible ? 'details' : 'section', `column column-${name.toLowerCase().replaceAll(' ', '-')}`);
     const tasks = matching.filter(task => task.section === name);
-    const heading = element(intake ? 'summary' : 'div', 'column-heading');
+    const heading = element(collapsible ? 'summary' : 'div', 'column-heading');
     heading.append(element('span', 'column-dot'), element('h2', '', labels[name] || name), element('span', 'count', String(tasks.length)));
+    if (name === 'Rejected' && rejectedCount) {
+      const trash = element('button', 'trash', '🗑 Delete all');
+      trash.type = 'button';
+      trash.setAttribute('aria-label', `Delete all ${rejectedCount} rejected tasks`);
+      trash.addEventListener('click', event => { event.preventDefault(); event.stopPropagation(); deleteRejected(rejectedCount); });
+      heading.append(trash);
+    }
     column.append(heading);
-    if (!intake) column.append(element('p', 'column-description', descriptions[name]));
+    if (!collapsible) column.append(element('p', 'column-description', descriptions[name]));
     const list = element('div', 'cards');
-    if (!tasks.length) list.append(element('p', 'empty', searching ? 'No matches here.' : intake ? 'All clear here.' : 'Nothing here. Enjoy it.'));
+    if (!tasks.length) list.append(element('p', 'empty', searching ? 'No matches here.' : collapsible ? 'All clear here.' : 'Nothing here. Enjoy it.'));
     for (const task of tasks) list.append(card(task));
     column.append(list);
     column.addEventListener('dragover', event => {
       if (!dragging || busy) return;
       event.preventDefault();
-      if (intake) column.open = true;
+      if (collapsible) column.open = true;
       column.classList.add('drop-target');
     });
     column.addEventListener('dragleave', event => { if (!column.contains(event.relatedTarget)) column.classList.remove('drop-target'); });
@@ -228,10 +257,10 @@ function render() {
       dragging = false;
       if (task) move(task, name);
     });
-    if (intake) {
+    if (collapsible) {
       column.dataset.section = name;
       column.open = searching ? tasks.length > 0 : expanded.has(name);
-      intakeElement.append(column);
+      (intake ? intakeElement : rejectedElement).append(column);
     } else boardElement.append(column);
   }
   if (focusedTask) {
@@ -264,7 +293,18 @@ async function refresh(manual = false) {
   }
 }
 
-async function move(task, target) {
+function move(task, target) {
+  return save('/api/move', { id: task.id, line: task.line, target }, `Moved to ${labels[target] || target}`);
+}
+
+function deleteRejected(count) {
+  if (busy) return;
+  const what = count === 1 ? '1 rejected task' : `${count} rejected tasks`;
+  if (!confirm(`Delete ${what} for good? This can't be undone. Notes in your daily notes stay.`)) return;
+  return save('/api/clear-rejected', {}, `Deleted ${what}`);
+}
+
+async function save(url, body, done) {
   if (busy) return;
   busy = true;
   refreshButton.disabled = true;
@@ -272,11 +312,11 @@ async function move(task, target) {
   message.classList.remove('error');
   message.textContent = 'Saving to TODO.md…';
   try {
-    board = await request('/api/move', {
+    board = await request(url, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ revision: board.revision, id: task.id, line: task.line, target }),
+      body: JSON.stringify({ revision: board.revision, ...body }),
     });
-    message.textContent = `Saved to TODO.md · Moved to ${labels[target] || target}`;
+    message.textContent = `Saved to TODO.md · ${done}`;
   } catch (error) {
     try { board = await request('/api/board'); } catch {}
     message.textContent = error.message;
