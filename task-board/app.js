@@ -272,13 +272,6 @@ function card(task) {
   edit.setAttribute('aria-label', `Edit: ${text}`);
   edit.addEventListener('click', () => openEditor(task));
   actions.append(edit);
-  if (task.section === 'Inbox') {
-    const reject = element('button', 'reject', 'Reject');
-    reject.type = 'button';
-    reject.setAttribute('aria-label', `Reject: ${text}`);
-    reject.addEventListener('click', () => move(task, 'Rejected'));
-    actions.append(reject);
-  }
   foot.append(actions);
   if (rejected) {
     const restore = element('button', 'restore', '↩ Restore');

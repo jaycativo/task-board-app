@@ -7,6 +7,17 @@ and the file changes. Edit the file in Obsidian, and the board follows.
 - Runs on your computer only. Nothing leaves your vault.
 - Your Markdown is the source of truth, so the board is just a view.
 
+![The task board: Inbox on top, then Later, Next, Now, In progress, and Done, with due dates, priorities, and note counts on the cards](docs/screenshot.png)
+
+The board follows your system's light or dark setting.
+
+<details>
+<summary>See dark mode</summary>
+
+![The same board in dark mode](docs/screenshot-dark.png)
+
+</details>
+
 ## Try the sample
 
 Open a terminal in this folder and run:
@@ -31,6 +42,47 @@ this folder. Press Ctrl+C to stop it.
 The terminal shows which `TODO.md` will receive changes. The app does not
 convert existing files.
 
+## Set it up with an AI assistant
+
+Not sure how to bring your own tasks over? Give this prompt to an AI assistant
+that can read and write files on your computer (for example Claude Code,
+Codex, or Cursor), after you have cloned this repo. It makes the assistant back
+up first, show you a plan, and only then change anything.
+
+```text
+I want to use the "Good work, friend" task board with my Obsidian vault. The
+board is in the folder I cloned from https://github.com/jaycativo/task-board-app.
+Please set it up for me, carefully.
+
+First read README.md in that folder, especially "The TODO.md format" and "Notes".
+
+1. Back up first. Copy my vault, or at least my existing TODO.md and task
+   notes, to a backup folder and tell me where it is. Change nothing before
+   this is done.
+2. Look at how I track tasks today: any TODO.md, task lists, or checkbox
+   notes. Do not edit anything yet.
+3. Show me a plan and wait for my OK. It should say how my existing statuses
+   map to Inbox, Backlog, Next, Now, In Progress, and Done, which tasks get
+   new IDs, and what you will leave alone.
+4. Once I agree, create or convert TODO.md at the root of my vault in exactly
+   the board's format: both collector markers, the six headings, and Done after
+   the end marker. Keep every task's text and its indented details. Give each
+   task a unique ^task-... ID. Only write due dates (📅 YYYY-MM-DD) and
+   priorities (⏫ 🔼 🔽) if I already track them. Do not touch my other notes.
+5. Read .obsidian/daily-notes.json and tell me which folder task notes will be
+   saved to. If my date format is not YYYY-MM-DD, tell me and suggest the
+   --notes-folder option.
+6. Check that Node.js 18 or later is installed. Test on a copy of my vault
+   first: start the board with bash start.sh "<path to the copy>", move one
+   card, add one task, and confirm the file looks right. Then show me how to
+   start it on my real vault.
+7. Tell me exactly what you changed, what you left alone, and the command to
+   start the board next time.
+
+Rules: never delete my content, never run anything on my real vault before the
+backup exists, and ask me if anything is unclear.
+```
+
 ## What the board does
 
 - **Move tasks** by dragging a card or using its Move menu, which lists every
@@ -47,8 +99,9 @@ convert existing files.
   `tomorrow`, `fri`, `20 nov`, `2d late`) and a priority (`▲ high`, `◆ med`,
   `▼ low`). Priority uses a shape and a word as well as a colour, and a footer
   toggle switches to a colour-blind-friendly palette.
-- **Reject tasks** from Inbox. Rejected tasks move to a collapsed Rejected
-  panel where you can restore them or delete them all with the trash button.
+- **Reject tasks** you decide against with Move, then Rejected. They go to a
+  collapsed Rejected panel under the board, where you can restore them to Inbox
+  or delete them all with the trash button.
 - **Sort** each column by file order, priority, or due date. High priority and
   the earliest due date come first, and tasks with neither go last. Sorting only
   changes how cards are shown: your file keeps its own order, and the board
@@ -112,13 +165,12 @@ format, the board falls back to `Daily Notes/` and tells you so.
 The board checks for file changes before saving, but it does not share a lock
 with Obsidian. Avoid saving the same file in both apps at the same moment.
 
-## Is it safe to run?
+## Building on it
 
-The server listens on `127.0.0.1` only, on a random port, so other devices on
-your network cannot reach it. It checks the Host and Origin of every request,
-accepts only JSON for changes, and sends a strict content security policy. It
-reads and writes only `TODO.md`, `TASK-ARCHIVE.md`, and the notes folder. Do not expose its port
-with a tunnel or port forwarding.
+Agent instructions live in `AGENTS.md`, and task-specific skills (adding a
+feature, the file format, server safety, the design system, running and
+verifying) live in `.agents/skills/`. They are written for any coding
+assistant, and for people too.
 
 ## Tests
 

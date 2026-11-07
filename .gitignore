@@ -2,7 +2,12 @@
 node_modules/
 *.tmp
 
-# Files the app creates when you run it on the sample
+# Files the app writes when you try it on the sample in this folder.
+# Notes go to the daily notes folder, finished tasks to the archive, and
+# --notes-folder or an Obsidian setting can add a notes folder of any name
+# (add yours here if you test with one).
 Daily Notes/
 intake/
+journal/
 TASK-ARCHIVE.md
+.obsidian/

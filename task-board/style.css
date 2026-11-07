@@ -66,7 +66,6 @@ summary { cursor: pointer; }
 .card.rejected { background: transparent; border-style: dashed; color: var(--done-ink); }
 .card.rejected .task-title { text-decoration: line-through; }
 .foot-actions { display: flex; flex-wrap: wrap; gap: 6px; }
-.reject:hover { background: var(--rose); color: #3B2A1E; }
 .trash, .archive { margin-left: 10px; padding: 2px 8px; font-size: 11px; color: var(--ink); }
 .archive:hover { background: var(--butter); color: #3B2A1E; }
 #task-delete { margin-right: auto; color: #C1272D; border-color: #C1272D; }
