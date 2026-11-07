@@ -39,9 +39,10 @@ node --test task-board/*.test.mjs  # all tests (list the files; a directory path
   - `app.js` starts the page and connects the pieces. The rest do one job each: `state.js` (shared
     facts), `api.js` (server calls), `status.js` (the status line), `dom.js` (small helpers),
     `board-view.js` (draws the board and cards), `task-dialog.js` (new, edit, delete),
-    `notes-drawer.js`, `date-picker.js`, `preferences.js` (theme, palette, sort).
+    `notes-drawer.js`, `date-picker.js`, `clock.js` (the header time), and `preferences.js` (style,
+    theme, palette, sort).
   - Pure logic is `.mjs` so Node can test it: `search.mjs` (search and sorting), `calendar.mjs`
-    (calendar days), `dates.mjs` (friendly date labels). Code that touches the page is `.js`.
+    (calendar days), `dates.mjs` (friendly date labels), `summary.mjs` (the greeting and the summary line). Code that touches the page is `.js`.
   - `style.css` (design tokens at the top), `index.html`, `favicon.svg` and `.png`, and
     `theme.js`, which applies the saved light or dark choice before the page is drawn.
 - `scripts/`: builds the Mac Dock app (`make-mac-app.sh`) and its icon (`make-icon.sh`,
@@ -80,6 +81,7 @@ Claude Code finds them through the `.claude/skills` link.
 Built: the look, due dates and priorities, colour-blind palette, the Rejected
 panel (Move, then Rejected; restore; delete all), archive, edit and delete, the
 Move menu, a styled calendar and priority control, the notes drawer, sorting,
-light and dark mode with an Auto, Light, Dark switch, README screenshots.
+light and dark mode with an Auto, Light, Dark switch, two styles (Playful and Minimal), a clock,
+a favicon, a Mac Dock app, README screenshots.
 
 Licence: MIT. Phone width is not a priority.

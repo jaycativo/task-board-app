@@ -7,15 +7,21 @@ and the file changes. Edit the file in Obsidian, and the board follows.
 - Runs on your computer only. Nothing leaves your vault.
 - Your Markdown is the source of truth, so the board is just a view.
 
-![The task board: Inbox on top, then Later, Next, Now, In progress, and Done, with due dates, priorities, and note counts on the cards](docs/screenshot.png)
+![The task board in its Playful style: a greeting and the time at the top, Inbox below, then Later, Next, Now, In progress, and Done, with due dates, priorities, and note counts on the cards](docs/screenshot.png)
 
-The board follows your system's light or dark setting. A small switch in the
-footer (Auto, Light, Dark) overrides it, and remembers your choice.
+Two styles, and light or dark, all chosen with small switches in the footer.
+The board remembers your choices. Dark follows your system by default.
 
 <details>
-<summary>See dark mode</summary>
+<summary>See Minimal, and dark mode</summary>
 
-![The same board in dark mode](docs/screenshot-dark.png)
+**Minimal**: calmer, with colour only in small dots.
+
+![The board in its Minimal style](docs/screenshot-minimal.png)
+
+**Playful in dark mode**
+
+![The Playful style in dark mode](docs/screenshot-dark.png)
 
 </details>
 
@@ -112,6 +118,11 @@ backup exists, and ask me if anything is unclear.
 
 ## What the board does
 
+- **Two styles.** *Playful* (the default) greets you by the time of day, tells you
+  what is due today or overdue, raises its buttons so they press down, adds a
+  little glyph to each column, and sparkles when you finish a task. *Minimal* is
+  calmer: a plain title, flat headings, and colour only in small dots.
+- **The time and date** sit under the title, in your computer's own format.
 - **Move tasks** by dragging a card or using its Move menu, which lists every
   column including Rejected.
 - **Add tasks** with the New task button. They land in Inbox.

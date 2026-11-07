@@ -165,6 +165,24 @@
     check('the colour-blind palette switches on', document.documentElement.dataset.palette === 'cb');
     $('#palette').click();
 
+    // --- Style, clock, and sparkle
+    check('the clock shows the time and date', /\d{1,2}:\d{2}/.test($('#clock').textContent) && $('#clock').dateTime, $('#clock').textContent);
+    check('Playful greets by the time of day, with a highlight', /^(good morning|good afternoon|good evening|up late), friend$/.test($('#title').textContent) && Boolean($('#title .title-hl')), $('#title').textContent);
+    const headingBackground = () => getComputedStyle($('.column-now .column-heading')).backgroundColor;
+    const playfulBackground = headingBackground();
+    $('[data-style-choice="minimal"]').click();
+    await wait(150);
+    check('Minimal keeps the plain title and flattens the headings', $('#title').textContent === 'good work, friend' && headingBackground() === 'rgba(0, 0, 0, 0)' && playfulBackground !== 'rgba(0, 0, 0, 0)', [$('#title').textContent, playfulBackground, headingBackground()]);
+    $('[data-style-choice="playful"]').click();
+    await wait(150);
+    check('switching back to Playful brings the colour back', headingBackground() === playfulBackground);
+    const finishing = card('Learn how the task file');
+    const finishMenu = finishing.querySelector('.move-menu');
+    finishMenu.open = true;
+    [...finishMenu.querySelectorAll('.menu-item')].find(item => item.textContent.startsWith('Done')).click();
+    await saved();
+    check('finishing a task sparkles in Playful', card('Learn how the task file')?.classList.contains('just-done'), card('Learn how the task file')?.className);
+
     // --- Archive, and delete
     check('there is a Done task to archive', Boolean(card('Start with a small problem')));
     $('.archive')?.click();

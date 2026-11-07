@@ -10,6 +10,7 @@ import { createBoardView, columnLabel } from './board-view.js';
 import { createNotesDrawer } from './notes-drawer.js';
 import { createTaskDialog } from './task-dialog.js';
 import { initPreferences } from './preferences.js';
+import { startClock } from './clock.js';
 
 const refreshButton = document.querySelector('#refresh');
 const newTaskButton = document.querySelector('#new-task');
@@ -31,7 +32,7 @@ const taskDialog = createTaskDialog({
   // A new task starts in Inbox, so clear any search that would hide it and show the Inbox.
   onCreated: () => { searchInput.value = ''; view.showPanel('Inbox'); },
 });
-initPreferences({ onSortChange: rerender });
+initPreferences({ onSortChange: rerender, onStyleChange: rerender });
 
 // Fetches the board. It waits while something else is going on, so it never redraws under the person.
 async function refresh(manual = false) {
@@ -76,6 +77,7 @@ async function save(url, body, done) {
 function move(task, target) {
   // Show the panel a task lands in, so the person sees where it went.
   if (target === 'Rejected' || target === 'Inbox') view.showPanel(target);
+  if (target === 'Done' && state.style === 'playful') view.celebrate(task);
   return save('/api/move', { id: task.id, line: task.line, target }, `Moved to ${columnLabel(target)}`);
 }
 
@@ -109,6 +111,7 @@ searchInput.addEventListener('keydown', event => {
 });
 window.addEventListener('focus', () => refresh());
 
+startClock({ element: document.querySelector('#clock'), onTick: () => view.renderHeader() });
 refresh();
 drawer.updateCounts();
 setInterval(() => refresh(), 5000);

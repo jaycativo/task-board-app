@@ -19,6 +19,20 @@ Playful, but serious about the work. Warm colour, firm outlines, plain words.
   action on a screen (New task, Create task, Save to daily note) is tangerine.
 - Done cards are dashed with strikethrough. Overdue is solid red with white text.
 
+## Two styles
+
+The footer switches between **Playful** (default) and **Minimal**. It is the `data-style` attribute on
+`<html>`, saved as `style`, and applied before the page is drawn by `web/theme.js`. Playful is written
+as `:root:not([data-style="minimal"])` so it is the default when nothing is saved.
+
+- **Playful:** a time-of-day greeting with a highlighter swipe on "friend", a summary that says what is
+  due today or overdue, buttons with a hard bottom edge that press down (`box-shadow`, so nothing
+  shifts), a glyph by each column name, cards that lift on hover, and a sparkle on a card for 1.2
+  seconds after it is finished. Motion only inside `prefers-reduced-motion: no-preference`.
+- **Minimal:** a plain title, flat column headings with a small colour dot, and no extras.
+- Both share every colour, so a colour change is made once. Anything new that moves, sparkles, or
+  shows off belongs to Playful only; Minimal stays calm.
+
 ## Colour rules
 
 - Each board column has its own colour: Inbox lilac, Later sand, Next sky,

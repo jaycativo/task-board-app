@@ -2,6 +2,7 @@
 // It never changes anything itself. When someone acts, it calls one of the handlers it was given.
 import { filterTasks, sortTasks } from './search.mjs';
 import { dueLabel, fullDate } from './dates.mjs';
+import { greeting, summaryLine } from './summary.mjs';
 import { element, appendText, noteLink } from './dom.js';
 import { state } from './state.js';
 
@@ -22,6 +23,9 @@ export function createBoardView({ onMove, onEdit, onNotes, onArchive, onDeleteRe
   const searchClear = document.querySelector('#search-clear');
   const newTaskButton = document.querySelector('#new-task');
   const wantOpen = new Set(); // panels to open on the next draw, so people see where a task went
+  const celebrating = new Map(); // tasks that just finished, and when their sparkle ends
+  const title = document.querySelector('#title');
+  const keyOf = task => task.id || task.title;
 
   function dueChip(due, checked) {
     if (checked) {
@@ -73,7 +77,7 @@ export function createBoardView({ onMove, onEdit, onNotes, onArchive, onDeleteRe
 
   function card(task) {
     const rejected = task.section === 'Rejected';
-    const node = element('article', `card${task.checked ? ' checked' : ''}${rejected ? ' rejected' : ''}`);
+    const node = element('article', `card${task.checked ? ' checked' : ''}${rejected ? ' rejected' : ''}${task.checked && (celebrating.get(keyOf(task)) ?? 0) > Date.now() ? ' just-done' : ''}`);
     node.draggable = true;
     const text = task.title ?? task.text;
 
@@ -130,6 +134,14 @@ export function createBoardView({ onMove, onEdit, onNotes, onArchive, onDeleteRe
     return node;
   }
 
+  // The greeting and the one-line summary. They change with the clock, so they can be redrawn alone.
+  function renderHeader() {
+    if (!state.board) return;
+    document.querySelector('#total').textContent = summaryLine(state.board.tasks, state.style);
+    if (state.style === 'playful') title.replaceChildren(`${greeting()}, `, element('span', 'title-hl', 'friend'));
+    else title.textContent = 'good work, friend';
+  }
+
   function headingActions(name, counts) {
     if (name === 'Rejected' && counts.rejected) {
       return taskButton('trash heading-action', '🗑 Delete all', `Delete all ${counts.rejected} rejected tasks`, event => {
@@ -157,7 +169,7 @@ export function createBoardView({ onMove, onEdit, onNotes, onArchive, onDeleteRe
 
     const counts = { done: board.tasks.filter(task => task.checked).length, rejected: board.tasks.filter(task => task.section === 'Rejected').length };
     document.querySelector('#open-note').href = noteLink('TODO');
-    document.querySelector('#total').textContent = `${board.tasks.length - counts.done - counts.rejected} open · ${counts.done} complete`;
+    renderHeader();
     const searching = Boolean(searchInput.value.trim());
     const matching = filterTasks(board.tasks, searchInput.value);
     searchClear.hidden = !searchInput.value;
@@ -209,6 +221,7 @@ export function createBoardView({ onMove, onEdit, onNotes, onArchive, onDeleteRe
         (intake ? intakeElement : rejectedElement).append(column);
       } else boardElement.append(column);
     }
+    for (const [key, until] of celebrating) if (until <= Date.now()) celebrating.delete(key);
     if (focusedTask) {
       [...document.querySelectorAll('.move-button')].find(button => button.getAttribute('aria-label') === focusedTask)?.focus({ preventScroll: true });
     }
@@ -221,8 +234,11 @@ export function createBoardView({ onMove, onEdit, onNotes, onArchive, onDeleteRe
 
   return {
     render,
+    renderHeader,
     // Open this panel (Inbox or Rejected) the next time the board is drawn.
     showPanel: name => wantOpen.add(name),
+    // Sparkle on this task for a moment (when it has just been finished), however many times the board is redrawn.
+    celebrate: task => celebrating.set(keyOf(task), Date.now() + 1200),
     // While a change is being saved, the buttons on the board wait.
     disableActions: () => document.querySelectorAll('.card-foot button, .heading-action').forEach(button => { button.disabled = true; }),
   };

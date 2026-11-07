@@ -198,3 +198,42 @@ footer { display: flex; justify-content: space-between; gap: 16px; color: var(--
   .sort { margin-left: 0; }
   .actions { width: 100%; }
 }
+
+/* ---- The time in the header ---- */
+.clock { font: 600 13px var(--mono); color: var(--ink); }
+.sep { color: var(--ink-soft); }
+
+/* ---- Style: Playful is the default; Minimal is chosen in the footer (data-style="minimal") ---- */
+.title-hl { background: var(--butter); color: #3B2A1E; padding: 0 .22em; border-radius: 4px; }
+
+/* Playful: raised buttons that press down. */
+:root:not([data-style="minimal"]) :is(.actions .button, .actions button, .card-foot button, .move-button, .note-buttons button, .heading-action) { box-shadow: 0 3px 0 var(--ink); }
+:root:not([data-style="minimal"]) :is(.actions .button, .actions button, .card-foot button, .move-button, .note-buttons button, .heading-action):active { transform: translateY(2px); box-shadow: 0 1px 0 var(--ink); }
+
+/* Playful: a little glyph by each column's name. */
+:root:not([data-style="minimal"]) .column-backlog h2::before { content: '◌ '; }
+:root:not([data-style="minimal"]) .column-next h2::before { content: '◔ '; }
+:root:not([data-style="minimal"]) .column-now h2::before { content: '✦ '; }
+:root:not([data-style="minimal"]) .column-in-progress h2::before { content: '→ '; }
+:root:not([data-style="minimal"]) .column-done h2::before { content: '✓ '; }
+
+/* Playful: cards lift when you point at them, and sparkle when you finish one. */
+@media (prefers-reduced-motion: no-preference) {
+  :root:not([data-style="minimal"]) .card { transition: transform .12s; }
+  :root:not([data-style="minimal"]) .card:hover { transform: translateY(-2px); }
+  :root:not([data-style="minimal"]) .card.just-done { position: relative; }
+  :root:not([data-style="minimal"]) .card.just-done::after { content: '✦ ✧ ✦'; position: absolute; top: -8px; right: 12px; color: var(--orange); font-size: 18px; letter-spacing: 6px; pointer-events: none; animation: sparkle 1.1s ease-out forwards; }
+  @keyframes sparkle { from { opacity: 1; transform: translateY(0) scale(.8); } to { opacity: 0; transform: translateY(-26px) scale(1.25); } }
+}
+
+/* Minimal: calmer. Colour moves into a small dot, and the headings go flat. */
+:root[data-style="minimal"] .column { border-bottom-width: 1.5px; }
+:root[data-style="minimal"] .column-heading,
+:root[data-style="minimal"] .column-rejected .column-heading { background: transparent; color: var(--ink); border-bottom: 1px solid var(--ink-soft); border-radius: 0; }
+:root[data-style="minimal"] .column-heading h2::before { content: ''; display: inline-block; width: 9px; height: 9px; margin-right: 7px; border-radius: 50%; background: var(--accent); border: 1.5px solid var(--ink); }
+
+/* Very narrow screens: slimmer sort buttons, so the whole row fits. */
+@media (max-width: 420px) {
+  .sort button { padding: 6px 7px; font-size: 11px; }
+  .sort-label { margin-right: 6px; }
+}

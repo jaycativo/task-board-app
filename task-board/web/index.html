@@ -13,14 +13,14 @@
 <body>
   <header>
     <div class="top">
-      <h1>good work, friend</h1>
+      <h1 id="title">good work, friend</h1>
       <div class="actions">
         <a id="open-note" class="button" href="#">Open in Obsidian ↗</a>
         <button id="refresh" type="button">↻ Refresh</button>
         <button id="new-task" type="button" disabled>+ New task</button>
       </div>
     </div>
-    <p class="sub" id="total">Loading tasks…</p>
+    <p class="sub"><time id="clock" class="clock"></time><span class="sep"> · </span><span id="total">Loading tasks…</span></p>
   </header>
   <main>
     <div class="search-bar">
@@ -39,7 +39,7 @@
     <div id="board" aria-label="Task board"></div>
     <div id="rejected" aria-label="Rejected tasks"></div>
   </main>
-  <footer><span><span class="status-dot"></span> Linked to TODO.md</span><span><span class="seg theme" role="group" aria-label="Colour theme"><button type="button" data-theme-choice="auto" aria-pressed="true">Auto</button><button type="button" data-theme-choice="light" aria-pressed="false">Light</button><button type="button" data-theme-choice="dark" aria-pressed="false">Dark</button></span><button id="palette" type="button" aria-pressed="false">Colour-blind palette: off</button> Changes stay in your vault · checks for updates every 5 seconds</span></footer>
+  <footer><span><span class="status-dot"></span> Linked to TODO.md</span><span><span class="seg theme" role="group" aria-label="Style"><button type="button" data-style-choice="playful" aria-pressed="true">Playful</button><button type="button" data-style-choice="minimal" aria-pressed="false">Minimal</button></span><span class="seg theme" role="group" aria-label="Colour theme"><button type="button" data-theme-choice="auto" aria-pressed="true">Auto</button><button type="button" data-theme-choice="light" aria-pressed="false">Light</button><button type="button" data-theme-choice="dark" aria-pressed="false">Dark</button></span><button id="palette" type="button" aria-pressed="false">Colour-blind palette: off</button> Changes stay in your vault · checks for updates every 5 seconds</span></footer>
   <dialog id="task-dialog" aria-labelledby="task-heading">
     <form id="task-form">
       <h2 id="task-heading">New task</h2>

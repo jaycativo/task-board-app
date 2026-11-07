@@ -9,7 +9,7 @@ function recall(key) {
   try { return localStorage.getItem(key); } catch { return null; }
 }
 
-export function initPreferences({ onSortChange }) {
+export function initPreferences({ onSortChange, onStyleChange }) {
   // Colour theme: Auto follows the system, Light and Dark override it.
   // (theme.js has already applied a saved choice, before the page was drawn.)
   function setTheme(choice) {
@@ -22,6 +22,19 @@ export function initPreferences({ onSortChange }) {
   setTheme(recall('theme'));
   document.querySelectorAll('[data-theme-choice]').forEach(button => button.addEventListener('click', () => {
     remember('theme', setTheme(button.dataset.themeChoice));
+  }));
+
+  // Style: Playful (greeting, raised buttons, sparkles) or Minimal (calmer, colour only in small dots).
+  function setStyle(choice) {
+    state.style = choice === 'minimal' ? 'minimal' : 'playful';
+    document.documentElement.dataset.style = state.style;
+    document.querySelectorAll('[data-style-choice]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.styleChoice === state.style)));
+  }
+  setStyle(recall('style'));
+  document.querySelectorAll('[data-style-choice]').forEach(button => button.addEventListener('click', () => {
+    setStyle(button.dataset.styleChoice);
+    remember('style', state.style);
+    onStyleChange();
   }));
 
   // The colour-blind palette.

@@ -5,4 +5,5 @@ export const state = {
   dragging: false,  // true while a card is being dragged
   noteCounts: {},   // how many notes each task has, by task ID
   sortMode: 'file', // 'file', 'priority', or 'due'
+  style: 'playful', // 'playful' or 'minimal'
 };
