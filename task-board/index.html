@@ -44,10 +44,20 @@
       <label for="new-task-title">Task title</label>
       <input id="new-task-title" type="text" maxlength="2000" required autocomplete="off" placeholder="Send the Q4 report to Sam">
       <div class="task-extras">
-        <div><label for="new-task-due">Due date <span class="optional">(optional)</span></label>
-          <input id="new-task-due" type="date"></div>
-        <div><label for="new-task-priority">Priority</label>
-          <select id="new-task-priority"><option value="">None</option><option value="high">▲ High</option><option value="medium">◆ Medium</option><option value="low">▼ Low</option></select></div>
+        <div class="date-field">
+          <label for="new-task-due">Due date <span class="optional">(optional)</span></label>
+          <div class="date-row">
+            <input id="new-task-due" type="text" inputmode="numeric" maxlength="10" autocomplete="off" placeholder="YYYY-MM-DD">
+            <button id="due-toggle" type="button" aria-label="Pick a date" aria-expanded="false" aria-controls="calendar">Pick</button>
+          </div>
+        </div>
+        <div id="calendar" class="calendar" role="group" aria-label="Pick a due date" hidden></div>
+        <div>
+          <span id="priority-label" class="field-label">Priority</span>
+          <div id="new-task-priority" class="seg" role="group" aria-labelledby="priority-label">
+            <button type="button" data-value="" aria-pressed="true">None</button><button type="button" data-value="high" aria-pressed="false">▲ High</button><button type="button" data-value="medium" aria-pressed="false">◆ Med</button><button type="button" data-value="low" aria-pressed="false">▼ Low</button>
+          </div>
+        </div>
       </div>
       <p id="task-status" role="status" aria-live="polite"></p>
       <div class="note-buttons"><button id="task-delete" type="button" hidden>Delete task</button><button id="task-cancel" type="button">Cancel</button><button id="task-create" type="submit">Create task</button></div>

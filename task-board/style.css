@@ -37,10 +37,14 @@ main { padding: 14px 40px 40px; }
 #search-clear { padding: 6px 10px; }
 .sort { display: flex; align-items: center; margin-left: auto; }
 .sort-label { font: 600 12px var(--mono); color: var(--ink-soft); margin-right: 8px; }
-.sort button { border-radius: 0; margin-left: -1.5px; padding: 6px 10px; }
-.sort button:first-of-type { border-radius: 6px 0 0 6px; margin-left: 0; }
-.sort button:last-of-type { border-radius: 0 6px 6px 0; }
-.sort button[aria-pressed="true"] { background: var(--butter); color: #3B2A1E; position: relative; }
+.sort button, .seg button { border-radius: 0; margin-left: -1.5px; padding: 6px 10px; }
+.sort button:first-of-type, .seg button:first-of-type { border-radius: 6px 0 0 6px; margin-left: 0; }
+.sort button:last-of-type, .seg button:last-of-type { border-radius: 0 6px 6px 0; }
+.sort button[aria-pressed="true"], .seg button[aria-pressed="true"] { background: var(--butter); color: #3B2A1E; position: relative; }
+.seg { display: flex; flex-wrap: wrap; }
+.seg [data-value="high"][aria-pressed="true"] { background: var(--pri-high); color: var(--pri-high-ink); }
+.seg [data-value="medium"][aria-pressed="true"] { background: var(--pri-med); color: var(--pri-med-ink); }
+.seg [data-value="low"][aria-pressed="true"] { background: var(--pri-low); color: var(--pri-low-ink); }
 #search-count { color: var(--ink-soft); font-size: 12px; }
 #search-empty { color: var(--ink); padding: 14px; border: 1.5px dashed var(--ink); border-radius: 8px; background: var(--panel); }
 #message { font-size: 13px; color: var(--ink-soft); min-height: 18px; margin: 4px 0 16px; }
@@ -51,7 +55,11 @@ main { padding: 14px 40px 40px; }
 #rejected .column { background: transparent; border-style: dashed; border-bottom-width: 1.5px; }
 #rejected .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); padding-top: 10px; }
 #intake .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); padding-top: 10px; }
-summary { cursor: pointer; }
+summary { cursor: pointer; list-style: none; }
+summary::-webkit-details-marker { display: none; }
+.chevron { display: inline-block; font-size: 12px; width: 12px; }
+details[open] > summary .chevron { transform: rotate(90deg); }
+@media (prefers-reduced-motion: no-preference) { .chevron { transition: transform .15s; } }
 #board { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; align-items: start; padding-bottom: 20px; }
 .column { --accent: var(--tan); background: var(--panel); border: 1.5px solid var(--ink); border-bottom-width: 5px; padding: 8px; border-radius: 8px; min-width: 0; }
 .column-inbox { --accent: var(--lilac); }
@@ -104,16 +112,15 @@ summary { cursor: pointer; }
 .priority-high { background: var(--pri-high); color: var(--pri-high-ink); }
 .priority-medium { background: var(--pri-med); color: var(--pri-med-ink); }
 .priority-low { background: var(--pri-low); color: var(--pri-low-ink); }
-.task-extras { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.task-extras { display: grid; gap: 4px; }
 .optional { font-weight: 400; color: var(--ink-soft); }
-#new-task-due, #new-task-priority { width: 100%; padding: 9px 10px; border: 1.5px solid var(--ink); border-radius: 6px; background: var(--card); max-width: none; font-size: 14px; }
+#new-task-due { flex: 1; min-width: 0; padding: 9px 10px; border: 1.5px solid var(--ink); border-radius: 6px; background: var(--card); font: 14px var(--mono); }
+.date-row { display: flex; gap: 6px; }
 #palette { padding: 3px 8px; font-size: 11px; margin-right: 12px; }
 .detail-hint { color: var(--ink-soft); font-size: 12px; margin: 0 0 8px; }
 .card-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 8px; border-top: 1px dashed var(--ink-soft); padding-top: 8px; }
 .card { min-width: 0; }
 .card-foot button { padding: 3px 8px; font-size: 11px; white-space: nowrap; }
-select { font-family: inherit; font-size: 14px; cursor: pointer; }
-select option { color: #3B2A1E; }
 .empty { color: var(--ink-soft); font-size: 13px; text-align: center; align-self: center; border: 1.5px dashed var(--ink-soft); border-radius: 6px; padding: 22px 8px; margin: 0; }
 .dragging { opacity: .35; }
 .drop-target { background: var(--butter) !important; }
@@ -122,7 +129,7 @@ dialog::backdrop { background: #3B2A1E99; }
 dialog h2 { font: 500 22px var(--mono); margin: 0 0 8px; }
 #note-task { font-size: 14px; line-height: 1.5; overflow-wrap: anywhere; }
 .note-help { color: var(--ink-soft); font-size: 13px; line-height: 1.5; }
-dialog label { display: block; font: 600 12px var(--mono); margin: 18px 0 6px; }
+dialog label, .field-label { display: block; font: 600 12px var(--mono); margin: 18px 0 6px; }
 #new-task-title, #note-text { width: 100%; padding: 10px; border: 1.5px solid var(--ink); border-radius: 6px; background: var(--card); line-height: 1.5; }
 #note-text { resize: vertical; }
 #task-status, #note-status { min-height: 18px; font-size: 13px; }
@@ -156,3 +163,15 @@ footer { display: flex; justify-content: space-between; gap: 16px; color: var(--
   #intake { flex-direction: column; } #intake .column { width: 100%; }
   footer { padding: 14px 18px; flex-direction: column; }
 }
+
+.calendar { width: 100%; max-width: 300px; margin: 6px 0 4px; padding: 8px; background: var(--panel); border: 1.5px solid var(--ink); border-bottom-width: 4px; border-radius: 8px; }
+.cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.cal-head button, .cal-foot button { padding: 3px 9px; font-size: 12px; }
+.cal-title { font: 600 12px var(--mono); }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+.cal-weekday { font: 600 10px var(--mono); color: var(--ink-soft); text-align: center; padding: 2px 0; }
+.cal-day { border: 0; background: transparent; padding: 6px 0; border-radius: 5px; font: 600 12px var(--mono); }
+.cal-day.outside { color: var(--ink-soft); font-weight: 400; }
+.cal-day.today { outline: 1.5px solid var(--ink); outline-offset: -1.5px; }
+.cal-day[aria-pressed="true"] { background: var(--butter); color: #3B2A1E; }
+.cal-foot { display: flex; justify-content: space-between; margin-top: 8px; }

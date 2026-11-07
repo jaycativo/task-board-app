@@ -1,4 +1,5 @@
 import { filterTasks, sortTasks } from './search.mjs';
+import { formatDate, parseDate, monthGrid, shiftMonth } from './calendar.mjs';
 
 const boardElement = document.querySelector('#board');
 const intakeElement = document.querySelector('#intake');
@@ -20,7 +21,20 @@ const taskStatus = document.querySelector('#task-status');
 const taskCreate = document.querySelector('#task-create');
 const taskCancel = document.querySelector('#task-cancel');
 const taskDue = document.querySelector('#new-task-due');
-const taskPriority = document.querySelector('#new-task-priority');
+const priorityGroup = document.querySelector('#new-task-priority');
+// The priority control is a row of toggle buttons; this lets the rest of the code read and set it like a field.
+const taskPriority = {
+  get value() { return priorityGroup.querySelector('[aria-pressed="true"]')?.dataset.value ?? ''; },
+  set value(priority) { priorityGroup.querySelectorAll('button').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.value === (priority || '')))); },
+};
+priorityGroup.addEventListener('click', event => {
+  const button = event.target.closest('button');
+  if (button) taskPriority.value = button.dataset.value;
+});
+const calendar = document.querySelector('#calendar');
+const dueToggle = document.querySelector('#due-toggle');
+let calendarView = { year: 0, month: 0 };
+const wantOpen = new Set();
 const paletteButton = document.querySelector('#palette');
 const taskDelete = document.querySelector('#task-delete');
 const taskHeading = document.querySelector('#task-heading');
@@ -301,6 +315,8 @@ function render() {
   const active = document.activeElement;
   const focusedTask = active?.getAttribute('aria-label');
   const expanded = new Set([...document.querySelectorAll('#intake details[open], #rejected details[open]')].map(node => node.dataset.section));
+  for (const name of wantOpen) expanded.add(name);
+  wantOpen.clear();
   boardElement.replaceChildren();
   intakeElement.replaceChildren();
   rejectedElement.replaceChildren();
@@ -319,7 +335,12 @@ function render() {
     const column = element(collapsible ? 'details' : 'section', `column column-${name.toLowerCase().replaceAll(' ', '-')}`);
     const tasks = sortTasks(matching.filter(task => task.section === name), sortMode);
     const heading = element(collapsible ? 'summary' : 'div', 'column-heading');
-    heading.append(element('span', 'column-dot'), element('h2', '', labels[name] || name), element('span', 'count', String(tasks.length)));
+    if (collapsible) {
+      const chevron = element('span', 'chevron', '▸');
+      chevron.setAttribute('aria-hidden', 'true');
+      heading.append(chevron);
+    }
+    heading.append(element('h2', '', labels[name] || name), element('span', 'count', String(tasks.length)));
     if (name === 'Rejected' && rejectedCount) {
       const trash = element('button', 'trash heading-action', '🗑 Delete all');
       trash.type = 'button';
@@ -392,6 +413,8 @@ async function refresh(manual = false) {
 }
 
 function move(task, target) {
+  // Show the panel a task lands in, so the person sees where it went.
+  if (target === 'Rejected' || target === 'Inbox') wantOpen.add(target);
   return save('/api/move', { id: task.id, line: task.line, target }, `Moved to ${labels[target] || target}`);
 }
 
@@ -447,10 +470,68 @@ newTaskButton.addEventListener('click', () => {
   taskTitle.value = '';
   taskDue.value = '';
   taskPriority.value = '';
+  closeCalendar();
   taskStatus.textContent = '';
   taskStatus.classList.remove('error');
   taskDialog.showModal();
   taskTitle.focus();
+});
+
+function fullDate(value) {
+  const { year, month, day } = parseDate(value);
+  return new Date(year, month, day).toLocaleDateString([], { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+}
+
+function renderCalendar() {
+  const chosen = parseDate(taskDue.value.trim());
+  const now = new Date();
+  const today = formatDate(now.getFullYear(), now.getMonth(), now.getDate());
+  const button = (text, label, onClick, className = '') => {
+    const node = element('button', className, text);
+    node.type = 'button';
+    if (label) node.setAttribute('aria-label', label);
+    node.addEventListener('click', onClick);
+    return node;
+  };
+  const pick = value => { taskDue.value = value; closeCalendar(); taskDue.focus(); };
+  const head = element('div', 'cal-head');
+  head.append(
+    button('‹', 'Previous month', () => { calendarView = shiftMonth(calendarView.year, calendarView.month, -1); renderCalendar(); }),
+    element('span', 'cal-title', new Date(calendarView.year, calendarView.month, 1).toLocaleDateString([], { month: 'long', year: 'numeric' }).toLowerCase()),
+    button('›', 'Next month', () => { calendarView = shiftMonth(calendarView.year, calendarView.month, 1); renderCalendar(); }),
+  );
+  const grid = element('div', 'cal-grid');
+  for (const weekday of ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su']) grid.append(element('span', 'cal-weekday', weekday));
+  for (const cell of monthGrid(calendarView.year, calendarView.month)) {
+    const day = button(String(cell.day), fullDate(cell.value), () => pick(cell.value), `cal-day${cell.inMonth ? '' : ' outside'}${cell.value === today ? ' today' : ''}`);
+    day.setAttribute('aria-pressed', String(Boolean(chosen) && cell.value === formatDate(chosen.year, chosen.month, chosen.day)));
+    grid.append(day);
+  }
+  const foot = element('div', 'cal-foot');
+  foot.append(button('Today', '', () => pick(today)), button('Clear', '', () => pick('')));
+  calendar.replaceChildren(head, grid, foot);
+}
+
+function openCalendar() {
+  const chosen = parseDate(taskDue.value.trim());
+  const now = new Date();
+  calendarView = { year: chosen?.year ?? now.getFullYear(), month: chosen?.month ?? now.getMonth() };
+  renderCalendar();
+  calendar.hidden = false;
+  dueToggle.setAttribute('aria-expanded', 'true');
+}
+
+function closeCalendar() {
+  calendar.hidden = true;
+  dueToggle.setAttribute('aria-expanded', 'false');
+}
+
+dueToggle.addEventListener('click', () => (calendar.hidden ? openCalendar() : closeCalendar()));
+calendar.addEventListener('keydown', event => {
+  if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); closeCalendar(); dueToggle.focus(); }
+});
+taskDialog.addEventListener('click', event => {
+  if (!calendar.hidden && !calendar.contains(event.target) && !dueToggle.contains(event.target)) closeCalendar();
 });
 
 function openEditor(task) {
@@ -464,6 +545,7 @@ function openEditor(task) {
   taskTitle.value = task.title ?? task.text;
   taskDue.value = task.due || '';
   taskPriority.value = task.priority || '';
+  closeCalendar();
   taskStatus.textContent = '';
   taskStatus.classList.remove('error');
   taskDialog.showModal();
@@ -513,6 +595,12 @@ document.querySelector('#task-form').addEventListener('submit', async event => {
     taskTitle.focus();
     return;
   }
+  if (taskDue.value.trim() && !parseDate(taskDue.value.trim())) {
+    taskStatus.textContent = 'Use the format YYYY-MM-DD, or pick a date.';
+    taskStatus.classList.add('error');
+    taskDue.focus();
+    return;
+  }
   taskSaving = true;
   taskCreate.disabled = true;
   taskCancel.disabled = true;
@@ -524,8 +612,8 @@ document.querySelector('#task-form').addEventListener('submit', async event => {
     board = await request(editing ? '/api/edit' : '/api/tasks', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(editing
-        ? { revision: taskRevision, id: editing.id, line: editing.line, title, due: taskDue.value || null, priority: taskPriority.value || null }
-        : { revision: taskRevision, id: newTaskId, title, due: taskDue.value || undefined, priority: taskPriority.value || undefined }),
+        ? { revision: taskRevision, id: editing.id, line: editing.line, title, due: taskDue.value.trim() || null, priority: taskPriority.value || null }
+        : { revision: taskRevision, id: newTaskId, title, due: taskDue.value.trim() || undefined, priority: taskPriority.value || undefined }),
     });
     if (!editing) searchInput.value = '';
     taskDialog.close();

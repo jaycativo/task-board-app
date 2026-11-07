@@ -482,7 +482,7 @@ export function createBoardServer(vaultRoot, { notesFolder } = {}) {
           }
         }
         send(200, publicBoard(updated, vaultRoot));
-      } else if (request.method === 'GET' && ['/', '/app.js', '/search.mjs', '/style.css'].includes(request.url)) {
+      } else if (request.method === 'GET' && ['/', '/app.js', '/search.mjs', '/calendar.mjs', '/style.css'].includes(request.url)) {
         const file = request.url === '/' ? 'index.html' : request.url.slice(1);
         const type = /\.m?js$/.test(file) ? 'text/javascript' : file.endsWith('.css') ? 'text/css' : 'text/html';
         send(200, readFileSync(join(directory, file)), `${type}; charset=utf-8`);

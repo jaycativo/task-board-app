@@ -35,11 +35,18 @@ Playful, but serious about the work. Warm colour, firm outlines, plain words.
 
 ## Controls
 
-- Do not use a native `<select>` for anything on the board: its menu cannot be
-  styled. The Move control is a `<details>` menu with coloured dots, a ✓ on the
-  current column, Escape to close, and a click outside to close. Rejected is
-  its last item, and the only way to reject a task.
-  (The priority field in the task form is the one native select.)
+- Do not use a native `<select>` or `<input type="date">`: their pop-ups cannot
+  be styled. Build the control instead:
+  - Move is a `<details>` menu with coloured dots, a ✓ on the current column,
+    Escape to close, and a click outside to close. Rejected is its last item, and
+    the only way to reject a task.
+  - Priority in the task form is a row of toggle buttons (`role="group"`,
+    `aria-pressed`), like the Sort control. A selected priority takes its own colour.
+  - Due date is a text field that takes `YYYY-MM-DD`, with a Pick button that
+    opens a small inline calendar (`calendar.mjs`: Monday first, today outlined,
+    Today and Clear buttons, Escape closes only the calendar). Typing is validated.
+- Collapsible panels (Inbox, Rejected) show a ▸ that turns to ▾ when open. A panel
+  a task has just moved into opens by itself, so the person sees where it went.
 - Buttons inside a `<summary>` must call `preventDefault()` and
   `stopPropagation()`, or they also toggle the section.
 - Dialogs are `<dialog>` elements opened with `showModal()`. The notes drawer
