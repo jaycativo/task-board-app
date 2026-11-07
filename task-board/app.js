@@ -19,7 +19,7 @@ const taskStatus = document.querySelector('#task-status');
 const taskCreate = document.querySelector('#task-create');
 const taskCancel = document.querySelector('#task-cancel');
 const labels = { Backlog: 'Later', 'In Progress': 'In progress' };
-const descriptions = { Backlog: 'Room for a future idea', Next: 'Coming into focus', Now: 'Ready for your attention', 'In Progress': 'Already in motion', Done: 'A little more complete' };
+const descriptions = { Backlog: 'Someday, maybe', Next: 'Coming into focus', Now: 'Ready for you', 'In Progress': 'Already in motion', Done: 'Look at you go' };
 let board;
 let busy = false;
 let dragging = false;
@@ -82,32 +82,18 @@ function card(task) {
   const hasSources = split >= 0 && /^(\[\[.*?\]\])(,\s*\[\[.*?\]\])*$/.test(task.text.slice(split + 3));
   appendText(title, hasSources ? task.text.slice(0, split) : task.text);
   node.append(title);
+  if (hasSources) {
+    const sources = element('p', 'sources');
+    appendText(sources, task.text.slice(split + 3));
+    node.append(sources);
+  }
+  if (task.end > task.line + 1) node.append(element('p', 'detail-hint', 'More detail in TODO.md'));
+  const foot = element('div', 'card-foot');
   if (task.id) {
-    const identity = element('div', 'task-identity');
-    const link = element('a', 'task-id', task.id);
-    link.href = noteLink(`TODO#^${task.id}`);
-    link.title = 'Open this task in Obsidian';
-    link.draggable = false;
-    const copy = element('button', 'copy-link', 'Copy link');
-    copy.type = 'button';
-    copy.setAttribute('aria-label', `Copy link to ${task.id}`);
-    copy.addEventListener('click', async () => {
-      const text = `[[TODO#^${task.id}]]`;
-      try {
-        await navigator.clipboard.writeText(text);
-        message.textContent = `Copied ${text}`;
-        message.classList.remove('error');
-      } catch {
-        message.textContent = `Cannot copy. Select this link and copy it: ${text}`;
-        message.classList.add('error');
-      }
-    });
-    identity.append(link, copy);
-    node.append(identity);
-    const addNote = element('button', 'add-note', 'Notes / Add note');
+    const addNote = element('button', 'add-note', 'Notes');
     addNote.type = 'button';
     addNote.disabled = busy;
-    addNote.setAttribute('aria-label', `Notes for ${task.id}`);
+    addNote.setAttribute('aria-label', `Notes for ${task.text}`);
     addNote.addEventListener('click', () => {
       noteTask = task;
       noteRequestId = crypto.randomUUID();
@@ -119,16 +105,8 @@ function card(task) {
       noteText.focus();
       loadNoteHistory(task.id);
     });
-    node.append(addNote);
-  }
-  if (hasSources) {
-    const sources = element('p', 'sources');
-    appendText(sources, task.text.slice(split + 3));
-    node.append(sources);
-  }
-  if (task.end > task.line + 1) node.append(element('p', 'detail-hint', 'More detail in TODO.md'));
-  const controls = element('div', 'card-controls');
-  controls.append(element('span', 'card-marker', task.checked ? '✓ Complete' : '⋮⋮'));
+    foot.append(addNote);
+  } else foot.append(element('span'));
   const label = element('label', 'move-label', 'Move ');
   const select = element('select');
   select.setAttribute('aria-label', `Move task: ${task.text}`);
@@ -141,8 +119,8 @@ function card(task) {
   select.disabled = busy;
   select.addEventListener('change', () => move(task, select.value));
   label.append(select);
-  controls.append(label);
-  node.append(controls);
+  foot.append(label);
+  node.append(foot);
   node.addEventListener('dragstart', event => {
     if (busy) { event.preventDefault(); return; }
     dragging = true;
@@ -182,7 +160,7 @@ function render() {
     column.append(heading);
     if (!intake) column.append(element('p', 'column-description', descriptions[name]));
     const list = element('div', 'cards');
-    if (!tasks.length) list.append(element('p', 'empty', searching ? 'No matches here.' : intake ? 'All clear here.' : 'A little room to breathe.'));
+    if (!tasks.length) list.append(element('p', 'empty', searching ? 'No matches here.' : intake ? 'All clear here.' : 'Nothing here. Enjoy it.'));
     for (const task of tasks) list.append(card(task));
     column.append(list);
     column.addEventListener('dragover', event => {
