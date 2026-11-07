@@ -481,34 +481,46 @@ function fullDate(value) {
   return new Date(year, month, day).toLocaleDateString([], { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 }
 
-function renderCalendar() {
+function renderCalendar(focusKey) {
   const chosen = parseDate(taskDue.value.trim());
   const now = new Date();
   const today = formatDate(now.getFullYear(), now.getMonth(), now.getDate());
-  const button = (text, label, onClick, className = '') => {
+  const button = (text, label, onClick, className = '', key = '') => {
     const node = element('button', className, text);
     node.type = 'button';
     if (label) node.setAttribute('aria-label', label);
+    if (key) node.dataset.key = key;
     node.addEventListener('click', onClick);
     return node;
   };
-  const pick = value => { taskDue.value = value; closeCalendar(); taskDue.focus(); };
+  // Picking a date keeps the calendar open so you can try others. Done (or Escape) closes it.
+  const pick = (value, key) => {
+    taskDue.value = value;
+    const picked = parseDate(value);
+    if (picked) calendarView = { year: picked.year, month: picked.month };
+    renderCalendar(key);
+  };
   const head = element('div', 'cal-head');
   head.append(
-    button('‹', 'Previous month', () => { calendarView = shiftMonth(calendarView.year, calendarView.month, -1); renderCalendar(); }),
+    button('‹', 'Previous month', () => { calendarView = shiftMonth(calendarView.year, calendarView.month, -1); renderCalendar('previous'); }, '', 'previous'),
     element('span', 'cal-title', new Date(calendarView.year, calendarView.month, 1).toLocaleDateString([], { month: 'long', year: 'numeric' }).toLowerCase()),
-    button('›', 'Next month', () => { calendarView = shiftMonth(calendarView.year, calendarView.month, 1); renderCalendar(); }),
+    button('›', 'Next month', () => { calendarView = shiftMonth(calendarView.year, calendarView.month, 1); renderCalendar('next'); }, '', 'next'),
   );
   const grid = element('div', 'cal-grid');
   for (const weekday of ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su']) grid.append(element('span', 'cal-weekday', weekday));
   for (const cell of monthGrid(calendarView.year, calendarView.month)) {
-    const day = button(String(cell.day), fullDate(cell.value), () => pick(cell.value), `cal-day${cell.inMonth ? '' : ' outside'}${cell.value === today ? ' today' : ''}`);
+    const day = button(String(cell.day), fullDate(cell.value), () => pick(cell.value, `day-${cell.value}`), `cal-day${cell.inMonth ? '' : ' outside'}${cell.value === today ? ' today' : ''}`, `day-${cell.value}`);
     day.setAttribute('aria-pressed', String(Boolean(chosen) && cell.value === formatDate(chosen.year, chosen.month, chosen.day)));
     grid.append(day);
   }
   const foot = element('div', 'cal-foot');
-  foot.append(button('Today', '', () => pick(today)), button('Clear', '', () => pick('')));
+  foot.append(
+    button('Today', '', () => pick(today, 'today'), '', 'today'),
+    button('Clear', '', () => pick('', 'clear'), '', 'clear'),
+    button('Done', 'Close the calendar', () => { closeCalendar(); taskDue.focus(); }, 'cal-done'),
+  );
   calendar.replaceChildren(head, grid, foot);
+  if (focusKey) calendar.querySelector(`[data-key="${focusKey}"]`)?.focus();
 }
 
 function openCalendar() {
@@ -525,7 +537,8 @@ function closeCalendar() {
   taskDue.setAttribute('aria-expanded', 'false');
 }
 
-// Click the field to open the calendar. Typing still works, and the calendar follows what you type.
+// Click the field to open the calendar. It stays open until you press Done or Escape.
+// Typing still works, and the calendar follows what you type.
 taskDue.addEventListener('click', () => { if (calendar.hidden) openCalendar(); });
 taskDue.addEventListener('keydown', event => {
   if (event.key === 'ArrowDown' && calendar.hidden) { event.preventDefault(); openCalendar(); }
@@ -539,11 +552,6 @@ taskDue.addEventListener('input', () => {
 });
 calendar.addEventListener('keydown', event => {
   if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); closeCalendar(); taskDue.focus(); }
-});
-taskDialog.addEventListener('click', event => {
-  // Read the path now: the month arrows redraw the calendar, which removes the button that was clicked.
-  const path = event.composedPath();
-  if (!calendar.hidden && !path.includes(calendar) && !path.includes(taskDue)) closeCalendar();
 });
 
 function openEditor(task) {

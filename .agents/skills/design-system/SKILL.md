@@ -41,11 +41,15 @@ Playful, but serious about the work. Warm colour, firm outlines, plain words.
     Escape to close, and a click outside to close. Rejected is its last item, and
     the only way to reject a task.
   - Priority in the task form is a row of toggle buttons (`role="group"`,
-    `aria-pressed`), like the Sort control. A selected priority takes its own colour.
+    `aria-pressed`), like the Sort control. Hovering or selecting a priority shows
+    its own colour (tangerine, butter, sage), so people see what they will get.
+    None is a neutral tan, so butter only ever means medium.
   - Due date is a text field that takes `YYYY-MM-DD`. Clicking it (or pressing ↓)
-    opens a small inline calendar (`calendar.mjs`: Monday first, today outlined,
-    Today and Clear buttons, Escape closes only the calendar), and the calendar
-    follows what you type. Typing is validated.
+    opens a small inline calendar (`calendar.mjs`: Monday first, today outlined).
+    It stays open while you pick, so people can try dates: picking a day, Today,
+    Clear, and the month arrows do not close it. Only Done or Escape closes it
+    (Escape closes just the calendar, not the dialog). It follows what you type.
+    Typing is validated.
 - Collapsible panels (Inbox, Rejected) show a triangle drawn in CSS, so it sits
   level with the heading text; it points right when closed and down when open. A panel
   a task has just moved into opens by itself, so the person sees where it went.

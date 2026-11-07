@@ -42,9 +42,10 @@ main { padding: 14px 40px 40px; }
 .sort button:last-of-type, .seg button:last-of-type { border-radius: 0 6px 6px 0; }
 .sort button[aria-pressed="true"], .seg button[aria-pressed="true"] { background: var(--butter); color: #3B2A1E; position: relative; }
 .seg { display: flex; flex-wrap: wrap; }
-.seg [data-value="high"][aria-pressed="true"] { background: var(--pri-high); color: var(--pri-high-ink); }
-.seg [data-value="medium"][aria-pressed="true"] { background: var(--pri-med); color: var(--pri-med-ink); }
-.seg [data-value="low"][aria-pressed="true"] { background: var(--pri-low); color: var(--pri-low-ink); }
+.seg [data-value=""]:hover, .seg [data-value=""][aria-pressed="true"] { background: var(--tan); color: #3B2A1E; }
+.seg [data-value="high"]:hover, .seg [data-value="high"][aria-pressed="true"] { background: var(--pri-high); color: var(--pri-high-ink); }
+.seg [data-value="medium"]:hover, .seg [data-value="medium"][aria-pressed="true"] { background: var(--pri-med); color: var(--pri-med-ink); }
+.seg [data-value="low"]:hover, .seg [data-value="low"][aria-pressed="true"] { background: var(--pri-low); color: var(--pri-low-ink); }
 #search-count { color: var(--ink-soft); font-size: 12px; }
 #search-empty { color: var(--ink); padding: 14px; border: 1.5px dashed var(--ink); border-radius: 8px; background: var(--panel); }
 #message { font-size: 13px; color: var(--ink-soft); min-height: 18px; margin: 4px 0 16px; }
@@ -174,4 +175,6 @@ footer { display: flex; justify-content: space-between; gap: 16px; color: var(--
 .cal-day.outside { color: var(--ink-soft); font-weight: 400; }
 .cal-day.today { outline: 1.5px solid var(--ink); outline-offset: -1.5px; }
 .cal-day[aria-pressed="true"] { background: var(--butter); color: #3B2A1E; }
-.cal-foot { display: flex; justify-content: space-between; margin-top: 8px; }
+.cal-foot { display: flex; gap: 6px; margin-top: 10px; }
+.cal-done { margin-left: auto; background: var(--orange); color: #3B2A1E; }
+.cal-done:hover { background: var(--butter); }
