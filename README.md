@@ -33,8 +33,16 @@ convert existing files.
 
 ## What the board does
 
-- **Move tasks** by dragging a card or using its Move menu.
+- **Move tasks** by dragging a card or using its Move menu, which lists every
+  column including Rejected.
 - **Add tasks** with the New task button. They land in Inbox.
+- **Edit or delete tasks** with a card's Edit button. You can change the title,
+  due date, and priority, or delete the task. Indented details under the task
+  and any other tokens on the line (like a repeat rule) are kept.
+- **Archive finished work.** The Archive all button on Done moves every done
+  task to `Task Archive.md` at the vault root, under a dated heading, and takes
+  them off the board. The archive keeps each task's details and adds a `✅`
+  completion date if it has none.
 - **Due dates and priorities.** Cards show a friendly due label (`today`,
   `tomorrow`, `fri`, `20 nov`, `2d late`) and a priority (`▲ high`, `◆ med`,
   `▼ low`). Priority uses a shape and a word as well as a colour, and a footer
@@ -104,6 +112,9 @@ node --test task-board/*.test.mjs
 
 ## Status
 
-Work in progress. Planned: edit and delete for tasks, a notes drawer with edit
-and delete, sorting by priority and due date, and reading the Obsidian daily
-notes setting.
+Work in progress. Planned: a notes drawer with edit and delete, sorting by
+priority and due date, and reading the Obsidian daily notes setting.
+
+Good to know: deleting or archiving a task does not touch its notes. Notes link
+to `[[TODO#^task-id]]`, so a link to an archived task stops resolving until the
+task is back in `TODO.md`.

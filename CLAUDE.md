@@ -41,10 +41,18 @@ node --test task-board/*.test.mjs  # all tests
 - Reject moves a task to an optional `## Rejected` section at the end of the file
   as `- [-]`. Restore sends it back to Inbox. The trash button deletes them all.
 - Suggestions was removed. Inbox is for triage.
+- Edit changes only the title, due date, and priority. The block ID, checkbox,
+  details, and unknown tokens stay. Editing and deleting use a native confirm
+  for anything permanent. If the file changed under an open edit, the dialog
+  closes instead of retrying, so a stale line number can never edit the wrong task.
+- Archive all moves Done tasks to `Task Archive.md` (root of the vault) with a
+  `✅` date. The archive is written before `TODO.md`, so a failure can only
+  duplicate a task, never lose one.
+- The Move control is a custom `<details>` menu, not a native select, so it
+  matches the app. The priority field in the task dialog is still a native select.
 
 ## Still to do
 
-- Edit and delete for tasks.
 - Notes: a side drawer with edit and delete for entries the app created, and
   use the vault's Obsidian daily notes folder (`.obsidian/daily-notes.json`)
   instead of the hard-coded `intake/`. Replace the hard-coded Europe/Lisbon time zone.

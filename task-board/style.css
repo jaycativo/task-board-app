@@ -61,7 +61,21 @@ summary { cursor: pointer; }
 .card.rejected .task-title { text-decoration: line-through; }
 .foot-actions { display: flex; gap: 6px; }
 .reject:hover { background: var(--rose); color: #3B2A1E; }
-.trash { margin-left: 10px; padding: 2px 8px; font-size: 11px; color: var(--ink); }
+.trash, .archive { margin-left: 10px; padding: 2px 8px; font-size: 11px; color: var(--ink); }
+.archive:hover { background: var(--butter); color: #3B2A1E; }
+#task-delete { margin-right: auto; color: #C1272D; border-color: #C1272D; }
+#task-delete:hover { background: #C1272D; color: #fff; }
+.move-menu { position: relative; }
+.move-button { list-style: none; cursor: pointer; border: 1.5px solid var(--ink); border-radius: 6px; background: var(--panel); padding: 3px 8px; font: 600 11px var(--mono); white-space: nowrap; }
+.move-button::-webkit-details-marker { display: none; }
+.move-button::after { content: " ▾"; }
+.move-button:hover, .move-menu[open] .move-button { background: var(--butter); color: #3B2A1E; }
+.menu-list { position: absolute; right: 0; bottom: calc(100% + 6px); z-index: 10; min-width: 170px; display: grid; gap: 2px; padding: 4px; background: var(--panel); border: 1.5px solid var(--ink); border-bottom-width: 4px; border-radius: 8px; }
+.menu-item { display: flex; align-items: center; gap: 8px; width: 100%; border: 0; background: transparent; padding: 6px 8px; border-radius: 5px; text-align: left; font: 600 12px var(--mono); }
+.menu-item:hover { background: var(--butter); color: #3B2A1E; }
+.menu-item .column-dot { width: 10px; height: 10px; border: 1.5px solid var(--ink); border-radius: 50%; background: var(--accent); flex: none; }
+.menu-name { flex: 1; }
+.menu-check { color: var(--ink-soft); }
 .trash:hover { background: #C1272D; border-color: #C1272D; color: #fff; }
 .column-heading h2 { font: 600 12px var(--mono); letter-spacing: .6px; text-transform: uppercase; margin: 0; }
 .count { font: 600 11px var(--mono); margin-left: auto; }
@@ -92,8 +106,7 @@ summary { cursor: pointer; }
 .detail-hint { color: var(--ink-soft); font-size: 12px; margin: 0 0 8px; }
 .card-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; border-top: 1px dashed var(--ink-soft); padding-top: 8px; }
 .card-foot button { padding: 3px 8px; font-size: 11px; white-space: nowrap; }
-.move-label { font: 11px var(--mono); color: var(--ink-soft); display: flex; align-items: center; gap: 4px; white-space: nowrap; }
-select { background: transparent; border: 0; font: 600 11px var(--mono); max-width: 110px; cursor: pointer; padding: 3px 0; }
+select { font-family: inherit; font-size: 14px; cursor: pointer; }
 select option { color: #3B2A1E; }
 .empty { color: var(--ink-soft); font-size: 13px; text-align: center; align-self: center; border: 1.5px dashed var(--ink-soft); border-radius: 6px; padding: 22px 8px; margin: 0; }
 .dragging { opacity: .35; }

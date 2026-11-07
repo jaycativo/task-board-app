@@ -22,6 +22,10 @@ const taskCancel = document.querySelector('#task-cancel');
 const taskDue = document.querySelector('#new-task-due');
 const taskPriority = document.querySelector('#new-task-priority');
 const paletteButton = document.querySelector('#palette');
+const taskDelete = document.querySelector('#task-delete');
+const taskHeading = document.querySelector('#task-heading');
+const taskHelp = document.querySelector('#task-help');
+let editTarget = null;
 const labels = { Backlog: 'Later', 'In Progress': 'In progress' };
 const descriptions = { Backlog: 'Someday, maybe', Next: 'Coming into focus', Now: 'Ready for you', 'In Progress': 'Already in motion', Done: 'Look at you go' };
 let board;
@@ -112,6 +116,34 @@ function dueChip(due, checked) {
   return chip;
 }
 
+// A small menu in the app's own style, in place of the browser's native dropdown.
+function moveMenu(task, text) {
+  const menu = element('details', 'move-menu');
+  const button = element('summary', 'move-button', `Move: ${labels[task.section] || task.section}`);
+  button.setAttribute('aria-label', `Move task: ${text}`);
+  const list = element('div', 'menu-list');
+  for (const name of [...board.columns.filter(column => column !== 'Rejected'), 'Rejected']) {
+    const item = element('button', `menu-item column-${name.toLowerCase().replaceAll(' ', '-')}`);
+    item.type = 'button';
+    const current = name === task.section;
+    item.append(element('span', 'column-dot'), element('span', 'menu-name', labels[name] || name));
+    if (current) {
+      item.append(element('span', 'menu-check', '✓'));
+      item.setAttribute('aria-current', 'true');
+    }
+    item.addEventListener('click', () => {
+      menu.open = false;
+      if (!current) move(task, name);
+    });
+    list.append(item);
+  }
+  menu.addEventListener('keydown', event => {
+    if (event.key === 'Escape') { menu.open = false; button.focus(); }
+  });
+  menu.append(button, list);
+  return menu;
+}
+
 function card(task) {
   const rejected = task.section === 'Rejected';
   const node = element('article', `card${task.checked ? ' checked' : ''}${rejected ? ' rejected' : ''}`);
@@ -160,6 +192,11 @@ function card(task) {
     });
     actions.append(addNote);
   }
+  const edit = element('button', 'edit', 'Edit');
+  edit.type = 'button';
+  edit.setAttribute('aria-label', `Edit: ${text}`);
+  edit.addEventListener('click', () => openEditor(task));
+  actions.append(edit);
   if (task.section === 'Inbox') {
     const reject = element('button', 'reject', 'Reject');
     reject.type = 'button';
@@ -174,21 +211,7 @@ function card(task) {
     restore.setAttribute('aria-label', `Restore to Inbox: ${text}`);
     restore.addEventListener('click', () => move(task, 'Inbox'));
     foot.append(restore);
-  } else {
-  const label = element('label', 'move-label', 'Move ');
-  const select = element('select');
-  select.setAttribute('aria-label', `Move task: ${text}`);
-  for (const name of board.columns.filter(name => name !== 'Rejected')) {
-    const option = element('option', '', labels[name] || name);
-    option.value = name;
-    option.selected = name === task.section;
-    select.append(option);
-  }
-  select.disabled = busy;
-  select.addEventListener('change', () => move(task, select.value));
-  label.append(select);
-  foot.append(label);
-  }
+  } else foot.append(moveMenu(task, text));
   node.append(foot);
   node.addEventListener('dragstart', event => {
     if (busy) { event.preventDefault(); return; }
@@ -230,11 +253,18 @@ function render() {
     const heading = element(collapsible ? 'summary' : 'div', 'column-heading');
     heading.append(element('span', 'column-dot'), element('h2', '', labels[name] || name), element('span', 'count', String(tasks.length)));
     if (name === 'Rejected' && rejectedCount) {
-      const trash = element('button', 'trash', '🗑 Delete all');
+      const trash = element('button', 'trash heading-action', '🗑 Delete all');
       trash.type = 'button';
       trash.setAttribute('aria-label', `Delete all ${rejectedCount} rejected tasks`);
       trash.addEventListener('click', event => { event.preventDefault(); event.stopPropagation(); deleteRejected(rejectedCount); });
       heading.append(trash);
+    }
+    if (name === 'Done' && done) {
+      const archive = element('button', 'archive heading-action', '📦 Archive all');
+      archive.type = 'button';
+      archive.setAttribute('aria-label', `Archive all ${done} done tasks`);
+      archive.addEventListener('click', () => archiveDoneTasks(done));
+      heading.append(archive);
     }
     column.append(heading);
     if (!collapsible) column.append(element('p', 'column-description', descriptions[name]));
@@ -264,7 +294,7 @@ function render() {
     } else boardElement.append(column);
   }
   if (focusedTask) {
-    [...document.querySelectorAll('select')].find(select => select.getAttribute('aria-label') === focusedTask)?.focus({ preventScroll: true });
+    [...document.querySelectorAll('.move-button')].find(button => button.getAttribute('aria-label') === focusedTask)?.focus({ preventScroll: true });
   }
 }
 
@@ -276,7 +306,7 @@ async function request(url, options) {
 }
 
 async function refresh(manual = false) {
-  if (busy || dragging || noteDialog.open || taskDialog.open || (!manual && document.activeElement?.tagName === 'SELECT')) return;
+  if (busy || dragging || noteDialog.open || taskDialog.open || (!manual && document.querySelector('.move-menu[open]'))) return;
   try {
     const result = await request('/api/board');
     if (busy || dragging || noteDialog.open || taskDialog.open) return;
@@ -304,11 +334,18 @@ function deleteRejected(count) {
   return save('/api/clear-rejected', {}, `Deleted ${what}`);
 }
 
+function archiveDoneTasks(count) {
+  if (busy) return;
+  const what = count === 1 ? '1 done task' : `${count} done tasks`;
+  if (!confirm(`Archive ${what}? They move to Task Archive.md in your vault and leave this board.`)) return;
+  return save('/api/archive-done', {}, `Archived ${what} to Task Archive.md`);
+}
+
 async function save(url, body, done) {
   if (busy) return;
   busy = true;
   refreshButton.disabled = true;
-  document.querySelectorAll('select').forEach(select => { select.disabled = true; });
+  document.querySelectorAll('.card-foot button, .heading-action').forEach(button => { button.disabled = true; });
   message.classList.remove('error');
   message.textContent = 'Saving to TODO.md…';
   try {
@@ -334,6 +371,11 @@ newTaskButton.addEventListener('click', () => {
   taskRevision = board.revision;
   do { newTaskId = `task-${crypto.randomUUID().replaceAll('-', '').slice(0, 8)}`; }
   while (board.tasks.some(task => task.id === newTaskId));
+  editTarget = null;
+  taskHeading.textContent = 'New task';
+  taskHelp.textContent = "New tasks land in Inbox. Move them when you're ready.";
+  taskCreate.textContent = 'Create task';
+  taskDelete.hidden = true;
   taskTitle.value = '';
   taskDue.value = '';
   taskPriority.value = '';
@@ -341,6 +383,54 @@ newTaskButton.addEventListener('click', () => {
   taskStatus.classList.remove('error');
   taskDialog.showModal();
   taskTitle.focus();
+});
+
+function openEditor(task) {
+  if (!board || busy) return;
+  editTarget = task;
+  taskRevision = board.revision;
+  taskHeading.textContent = 'Edit task';
+  taskHelp.textContent = 'Changes save to TODO.md. Details under the task stay as they are.';
+  taskCreate.textContent = 'Save changes';
+  taskDelete.hidden = false;
+  taskTitle.value = task.title ?? task.text;
+  taskDue.value = task.due || '';
+  taskPriority.value = task.priority || '';
+  taskStatus.textContent = '';
+  taskStatus.classList.remove('error');
+  taskDialog.showModal();
+  taskTitle.focus();
+}
+
+taskDelete.addEventListener('click', async () => {
+  if (taskSaving || !editTarget) return;
+  const task = editTarget;
+  const name = task.title ?? task.text;
+  if (!confirm(`Delete "${name}" for good? This can't be undone. Notes in your daily notes stay.`)) return;
+  taskSaving = true;
+  taskDelete.disabled = true;
+  taskCreate.disabled = true;
+  taskCancel.disabled = true;
+  try {
+    board = await request('/api/delete', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ revision: taskRevision, id: task.id, line: task.line }),
+    });
+    taskDialog.close();
+    render();
+    message.textContent = `Saved to TODO.md · Deleted ${name}`;
+    message.classList.remove('error');
+  } catch (error) {
+    try { board = await request('/api/board'); } catch {}
+    taskDialog.close();
+    message.textContent = error.message;
+    message.classList.add('error');
+  } finally {
+    taskSaving = false;
+    taskDelete.disabled = false;
+    taskCreate.disabled = false;
+    taskCancel.disabled = false;
+  }
 });
 taskCancel.addEventListener('click', () => taskDialog.close());
 taskDialog.addEventListener('cancel', event => { if (taskSaving) event.preventDefault(); });
@@ -362,23 +452,33 @@ document.querySelector('#task-form').addEventListener('submit', async event => {
   taskStatus.textContent = 'Saving to TODO.md…';
   taskStatus.classList.remove('error');
   try {
-    board = await request('/api/tasks', {
+    const editing = editTarget;
+    board = await request(editing ? '/api/edit' : '/api/tasks', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ revision: taskRevision, id: newTaskId, title, due: taskDue.value || undefined, priority: taskPriority.value || undefined }),
+      body: JSON.stringify(editing
+        ? { revision: taskRevision, id: editing.id, line: editing.line, title, due: taskDue.value || null, priority: taskPriority.value || null }
+        : { revision: taskRevision, id: newTaskId, title, due: taskDue.value || undefined, priority: taskPriority.value || undefined }),
     });
-    searchInput.value = '';
+    if (!editing) searchInput.value = '';
     taskDialog.close();
     render();
-    intakeElement.querySelector('.column-inbox').open = true;
-    message.textContent = `Created in Inbox · ${title}`;
+    if (!editing) intakeElement.querySelector('.column-inbox').open = true;
+    message.textContent = editing ? `Saved to TODO.md · Edited ${title}` : `Created in Inbox · ${title}`;
     message.classList.remove('error');
   } catch (error) {
     try {
       board = await request('/api/board');
       taskRevision = board.revision;
     } catch {}
-    taskStatus.textContent = error.message;
-    taskStatus.classList.add('error');
+    if (editTarget) {
+      // The file changed under the open task, so its position may have moved. Close rather than risk editing the wrong line.
+      taskDialog.close();
+      message.textContent = error.message;
+      message.classList.add('error');
+    } else {
+      taskStatus.textContent = error.message;
+      taskStatus.classList.add('error');
+    }
   } finally {
     taskSaving = false;
     taskCreate.disabled = false;
@@ -449,6 +549,9 @@ paletteButton.addEventListener('click', () => {
   const next = paletteButton.getAttribute('aria-pressed') !== 'true';
   setPalette(next);
   try { localStorage.setItem('palette', next ? 'cb' : ''); } catch {}
+});
+document.addEventListener('click', event => {
+  document.querySelectorAll('.move-menu[open]').forEach(menu => { if (!menu.contains(event.target)) menu.open = false; });
 });
 window.addEventListener('focus', () => refresh());
 refresh();

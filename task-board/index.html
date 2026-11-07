@@ -36,7 +36,7 @@
   <dialog id="task-dialog" aria-labelledby="task-heading">
     <form id="task-form">
       <h2 id="task-heading">New task</h2>
-      <p class="note-help">New tasks land in Inbox. Move them when you're ready.</p>
+      <p id="task-help" class="note-help">New tasks land in Inbox. Move them when you're ready.</p>
       <label for="new-task-title">Task title</label>
       <input id="new-task-title" type="text" maxlength="2000" required autocomplete="off" placeholder="Send the Q4 report to Sam">
       <div class="task-extras">
@@ -46,7 +46,7 @@
           <select id="new-task-priority"><option value="">None</option><option value="high">▲ High</option><option value="medium">◆ Medium</option><option value="low">▼ Low</option></select></div>
       </div>
       <p id="task-status" role="status" aria-live="polite"></p>
-      <div class="note-buttons"><button id="task-cancel" type="button">Cancel</button><button id="task-create" type="submit">Create task</button></div>
+      <div class="note-buttons"><button id="task-delete" type="button" hidden>Delete task</button><button id="task-cancel" type="button">Cancel</button><button id="task-create" type="submit">Create task</button></div>
     </form>
   </dialog>
   <dialog id="note-dialog" aria-labelledby="note-heading">
