@@ -33,7 +33,8 @@
         <button type="button" data-sort="file" aria-pressed="true">File order</button><button type="button" data-sort="priority" aria-pressed="false">Priority</button><button type="button" data-sort="due" aria-pressed="false">Due date</button>
       </div>
     </div>
-    <p id="search-empty" hidden>No tasks match. Try another word.</p>
+    <div id="tag-bar" class="tag-bar" role="group" aria-label="Filter by tag" hidden></div>
+    <p id="search-empty" hidden>No tasks match. Try another word or tag.</p>
     <p id="message" role="status" aria-live="polite">Loading TODO.md…</p>
     <div id="intake" aria-label="Task intake"></div>
     <div id="board" aria-label="Task board"></div>
@@ -46,6 +47,8 @@
       <p id="task-help" class="note-help">New tasks land in Inbox. Move them when you're ready.</p>
       <label for="new-task-title">Task title</label>
       <input id="new-task-title" type="text" maxlength="2000" required autocomplete="off" placeholder="Send the Q4 report to Sam">
+      <label for="new-task-tags">Tags <span class="optional">(optional, separate with spaces or commas)</span></label>
+      <input id="new-task-tags" type="text" maxlength="400" autocomplete="off" placeholder="errands, home">
       <div class="task-extras">
         <div class="date-field">
           <label for="new-task-due">Due date <span class="optional">(optional)</span></label>

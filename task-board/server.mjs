@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
 import { fail } from './errors.mjs';
 import { writeIfUnchanged } from './safe-write.mjs';
-import { parseBoard, moveTask, createTask, editTask, deleteTask, clearRejected } from './board.mjs';
+import { parseBoard, moveTask, createTask, editTask, deleteTask, clearRejected, addSubtask, toggleSubtask, deleteSubtask } from './board.mjs';
 import { archiveDone, appendArchive } from './archive.mjs';
 import { notesSettings, appendTaskNote, readTaskNotes, countTaskNotes, editTaskNote, deleteTaskNote } from './notes.mjs';
 
@@ -38,6 +38,9 @@ const taskChanges = {
   '/api/edit': editTask,
   '/api/delete': deleteTask,
   '/api/clear-rejected': clearRejected,
+  '/api/subtasks': addSubtask,
+  '/api/subtasks/toggle': toggleSubtask,
+  '/api/subtasks/delete': deleteSubtask,
 };
 const archiveRoute = '/api/archive-done';
 
