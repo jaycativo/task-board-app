@@ -27,6 +27,7 @@ export function createBoardView({ onMove, onEdit, onNotes, onArchive, onDeleteRe
   const celebrating = new Map(); // tasks that just finished, and when their sparkle ends
   const title = document.querySelector('#title');
   const tagBar = document.querySelector('#tag-bar');
+  const openSubtasks = new Set(); // cards whose sub-tasks are showing, so a redraw keeps them open
   const keyOf = task => task.id || task.title;
 
   function dueChip(due, checked) {
@@ -83,9 +84,19 @@ export function createBoardView({ onMove, onEdit, onNotes, onArchive, onDeleteRe
   function subtaskList(task, taskText) {
     const box = element('div', 'subtasks');
     const subtasks = task.subtasks || [];
+    const open = openSubtasks.has(keyOf(task));
+    const done = subtasks.filter(item => item.checked).length;
+    const toggle = element('button', 'subtask-toggle', `${open ? '▾' : '▸'} Sub-tasks${subtasks.length ? ` · ${done} of ${subtasks.length}` : ''}`);
+    toggle.type = 'button';
+    toggle.setAttribute('aria-expanded', String(open));
+    toggle.setAttribute('aria-label', `${open ? 'Hide' : 'Show'} sub-tasks: ${taskText}`);
+    toggle.addEventListener('click', () => {
+      if (open) openSubtasks.delete(keyOf(task)); else openSubtasks.add(keyOf(task));
+      render();
+    });
+    box.append(toggle);
+    if (!open) return box;
     if (subtasks.length) {
-      const done = subtasks.filter(item => item.checked).length;
-      box.append(element('p', 'subtask-progress', `Sub-tasks · ${done} of ${subtasks.length}`));
       const list = element('ul', 'subtask-list');
       for (const item of subtasks) {
         const row = element('li', `subtask${item.checked ? ' checked' : ''}`);

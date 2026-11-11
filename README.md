@@ -151,7 +151,8 @@ backup exists, and ask me if anything is unclear.
   more to narrow further, press it again to let go. Pressing a tag on a card
   does the same. The board writes a task's tags after its title, so editing a
   task moves any tags you typed in the middle of the line to that spot.
-- **Sub-tasks.** Type in the "Add a sub-task" box on a card. Sub-tasks are
+- **Sub-tasks.** Press "Sub-tasks" on a card to open or close its list (the
+  "1 of 3" progress shows even when closed), then type in the "Add a sub-task" box. Sub-tasks are
   indented checkbox lines under the task in `TODO.md` (`  - [ ] Book flights`),
   so Obsidian understands them too. Tick them on the card, delete them with ×,
   and see "1 of 3" progress. They move, archive, and delete with their task.
