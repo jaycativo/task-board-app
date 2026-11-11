@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { sortTasks, filterTasks } from './web/search.mjs';
+import { sortTasks, filterTasks, filterByTags, tagCounts } from './web/search.mjs';
 
 const task = (line, title, priority = null, due = null) => ({ line, title, priority, due });
 const tasks = [
@@ -35,4 +35,26 @@ test('sorting does not change the original list', () => {
 
 test('search still finds tasks by priority and date', () => {
   assert.deepEqual(titles(filterTasks(tasks, 'high 2026-12')), ['high later']);
+});
+
+const tagged = [
+  { line: 1, title: 'milk', tags: ['errands', 'home'] },
+  { line: 2, title: 'taxes', tags: ['admin'] },
+  { line: 3, title: 'bins', tags: ['home'], subtasks: [{ text: 'blue bin' }] },
+  { line: 4, title: 'plain' },
+];
+
+test('counts tags, most used first', () => {
+  assert.deepEqual(tagCounts(tagged), [{ tag: 'home', count: 2 }, { tag: 'admin', count: 1 }, { tag: 'errands', count: 1 }]);
+});
+
+test('filters by one tag, or by all chosen tags', () => {
+  assert.deepEqual(titles(filterByTags(tagged, ['home'])), ['milk', 'bins']);
+  assert.deepEqual(titles(filterByTags(tagged, ['home', 'errands'])), ['milk']);
+  assert.equal(filterByTags(tagged, []), tagged);
+});
+
+test('search finds tags and sub-task text', () => {
+  assert.deepEqual(titles(filterTasks(tagged, '#admin')), ['taxes']);
+  assert.deepEqual(titles(filterTasks(tagged, 'blue')), ['bins']);
 });

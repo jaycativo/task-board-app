@@ -4,7 +4,9 @@ export function filterTasks(tasks, query) {
   if (!text) return tasks;
   const terms = normalize(text).split(/\s+/);
   return tasks.filter(task => {
-    const content = normalize(`${task.title ?? task.text} ${task.id || ''} ${task.priority || ''} ${task.due || ''}`);
+    const tags = (task.tags || []).map(tag => `#${tag}`).join(' ');
+    const subtasks = (task.subtasks || []).map(item => item.text).join(' ');
+    const content = normalize(`${task.title ?? task.text} ${tags} ${subtasks} ${task.id || ''} ${task.priority || ''} ${task.due || ''}`);
     return terms.every(term => content.includes(term));
   });
 }
@@ -28,4 +30,17 @@ export function sortTasks(tasks, mode) {
     }
     return a.line - b.line;
   });
+}
+
+// Every tag in use, with how many tasks have it, most used first and then alphabetical.
+export function tagCounts(tasks) {
+  const counts = new Map();
+  for (const task of tasks) for (const tag of task.tags || []) counts.set(tag, (counts.get(tag) || 0) + 1);
+  return [...counts].map(([tag, count]) => ({ tag, count })).sort((a, b) => b.count - a.count || a.tag.localeCompare(b.tag));
+}
+
+// Keeps only tasks that have every chosen tag. No chosen tags keeps everything.
+export function filterByTags(tasks, chosen) {
+  if (!chosen.length) return tasks;
+  return tasks.filter(task => chosen.every(tag => (task.tags || []).includes(tag)));
 }

@@ -3,12 +3,12 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { parseBoard, moveTask, createTask, editTask, deleteTask, clearRejected, readTokens } from './board.mjs';
+import { parseBoard, moveTask, createTask, editTask, deleteTask, clearRejected, readTokens, addSubtask, toggleSubtask, deleteSubtask } from './board.mjs';
 
 const sample = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '../TODO.md'), 'utf8');
 
 test('reads due date and priority and leaves the title clean', () => {
-  assert.deepEqual(readTokens('Send report ⏫ 📅 2026-11-14'), { title: 'Send report', due: '2026-11-14', priority: 'high' });
+  assert.deepEqual(readTokens('Send report ⏫ 📅 2026-11-14'), { title: 'Send report', due: '2026-11-14', priority: 'high', tags: [] });
   assert.equal(readTokens('Plain task').priority, null);
   assert.equal(readTokens('Plain task').due, null);
   assert.equal(readTokens('Low thing 🔽').priority, 'low');
@@ -146,4 +146,76 @@ test('editing a task that has an ID leaves the ID alone', () => {
   const { revision } = parseBoard(sample);
   const edited = editTask(sample, { revision, id: 'task-first-move', title: 'Move a card' });
   assert.match(edited, /- \[ \] Move a card \^task-first-move/);
+});
+
+// --- Tags ---
+
+test('reads tags and keeps wiki-link headings and web addresses out of them', () => {
+  const read = readTokens('Call #mum about #work/report ⏫ [[Note#Heading]] https://x.com/#top #2026');
+  assert.deepEqual(read.tags, ['mum', 'work/report']);
+  assert.equal(read.title, 'Call about [[Note#Heading]] https://x.com/#top #2026');
+});
+
+test('creates and edits a task with tags, written after the title', () => {
+  const { revision } = parseBoard(sample);
+  const created = createTask(sample, { revision, id: 'task-0a1b2c3d', title: 'Buy milk', tags: ['#errands', 'home'], priority: 'low', due: '2026-11-20' });
+  assert.match(created, /- \[ \] Buy milk #errands #home 🔽 📅 2026-11-20 \^task-0a1b2c3d/);
+  const task = parseBoard(created).tasks.find(item => item.id === 'task-0a1b2c3d');
+  assert.deepEqual(task.tags, ['errands', 'home']);
+  assert.equal(task.title, 'Buy milk');
+  const edited = editTask(created, { revision: parseBoard(created).revision, id: task.id, title: 'Buy oat milk', tags: ['errands'], priority: 'low', due: '2026-11-20' });
+  assert.match(edited, /Buy oat milk #errands 🔽 📅 2026-11-20 \^task-0a1b2c3d/);
+});
+
+test('rejects bad tags and tags typed into the title', () => {
+  const { revision } = parseBoard(sample);
+  const base = { revision, id: 'task-0a1b2c3d', title: 'Buy milk' };
+  assert.throws(() => createTask(sample, { ...base, tags: ['two words'] }), /Tags use letters/);
+  assert.throws(() => createTask(sample, { ...base, tags: ['123'] }), /Tags use letters/);
+  assert.throws(() => createTask(sample, { ...base, tags: 'home' }), /up to 20 tags/);
+  assert.throws(() => createTask(sample, { ...base, title: 'Buy milk #home' }), /tags field/);
+});
+
+// --- Sub-tasks ---
+
+const withParent = sample.replace('## Inbox\n', '## Inbox\n- [ ] Plan trip ^task-aaaa1111\n  - a detail line\n');
+const idOf = text => parseBoard(text).tasks.find(item => item.id === 'task-aaaa1111');
+
+test('adds sub-tasks under the task, after its details, and reads them back', () => {
+  let text = addSubtask(withParent, { revision: parseBoard(withParent).revision, id: 'task-aaaa1111', title: 'Book flights' });
+  text = addSubtask(text, { revision: parseBoard(text).revision, id: 'task-aaaa1111', title: 'Pack' });
+  assert.match(text, /- \[ \] Plan trip \^task-aaaa1111\n  - a detail line\n  - \[ \] Book flights\n  - \[ \] Pack\n/);
+  const parent = idOf(text);
+  assert.deepEqual(parent.subtasks.map(item => [item.index, item.text, item.checked]), [[0, 'Book flights', false], [1, 'Pack', false]]);
+});
+
+test('ticks, unticks, and deletes a sub-task without touching anything else', () => {
+  const added = addSubtask(withParent, { revision: parseBoard(withParent).revision, id: 'task-aaaa1111', title: 'Book flights' });
+  const ticked = toggleSubtask(added, { revision: parseBoard(added).revision, id: 'task-aaaa1111', index: 0 });
+  assert.match(ticked, /  - \[x\] Book flights/);
+  assert.equal(idOf(ticked).subtasks[0].checked, true);
+  assert.equal(idOf(ticked).checked, false);
+  const unticked = toggleSubtask(ticked, { revision: parseBoard(ticked).revision, id: 'task-aaaa1111', index: 0 });
+  assert.equal(unticked, added);
+  const removed = deleteSubtask(added, { revision: parseBoard(added).revision, id: 'task-aaaa1111', index: 0 });
+  assert.equal(removed, withParent);
+});
+
+test('sub-tasks move with their task and keep the file ending style', () => {
+  const crlf = withParent.replaceAll('\n', '\r\n');
+  const added = addSubtask(crlf, { revision: parseBoard(crlf).revision, id: 'task-aaaa1111', title: 'Book flights' });
+  assert.match(added, /  - \[ \] Book flights\r\n/);
+  const moved = moveTask(added, { revision: parseBoard(added).revision, id: 'task-aaaa1111', target: 'Now' });
+  const parent = idOf(moved);
+  assert.equal(parent.section, 'Now');
+  assert.equal(parent.subtasks.length, 1);
+});
+
+test('sub-task changes check input, revision, and that the task exists', () => {
+  const { revision } = parseBoard(withParent);
+  assert.throws(() => addSubtask(withParent, { revision, id: 'task-aaaa1111', title: '  ' }), /task title/);
+  assert.throws(() => addSubtask(withParent, { revision: 'old', id: 'task-aaaa1111', title: 'x' }), /changed/);
+  assert.throws(() => addSubtask(withParent, { revision, id: 'task-nope', title: 'x' }), /not found/);
+  assert.throws(() => toggleSubtask(withParent, { revision, id: 'task-aaaa1111', index: 0 }), /Sub-task not found/);
+  assert.throws(() => toggleSubtask(withParent, { revision, id: 'task-aaaa1111', index: 'a' }), /Sub-task not found/);
 });
