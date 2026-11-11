@@ -4,6 +4,7 @@ export const state = {
   busy: false,      // true while a change is being saved
   dragging: false,  // true while a card is being dragged
   noteCounts: {},   // how many notes each task has, by task ID
+  tagFilter: [],    // the tags the board is filtered by (a task needs all of them)
   sortMode: 'file', // 'file', 'priority', or 'due'
   style: 'playful', // 'playful' or 'minimal'
 };

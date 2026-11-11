@@ -25,6 +25,8 @@ const view = createBoardView({
   onNotes: (task, title) => drawer.open(task, title),
   onArchive: archiveDoneTasks,
   onDeleteRejected: deleteRejected,
+  onTag: toggleTag,
+  onSubtask: changeSubtask,
 });
 const drawer = createNotesDrawer({ rerender });
 const taskDialog = createTaskDialog({
@@ -81,6 +83,19 @@ function move(task, target) {
   return save('/api/move', { id: task.id, line: task.line, target }, `Moved to ${columnLabel(target)}`);
 }
 
+function toggleTag(tag) {
+  state.tagFilter = state.tagFilter.includes(tag) ? state.tagFilter.filter(item => item !== tag) : [...state.tagFilter, tag];
+  rerender();
+}
+
+const subtaskRoutes = { add: ['/api/subtasks', 'Added a sub-task'], toggle: ['/api/subtasks/toggle', 'Updated a sub-task'], delete: ['/api/subtasks/delete', 'Deleted a sub-task'] };
+
+function changeSubtask(task, action, details) {
+  if (action === 'delete' && !confirm(`Delete the sub-task "${details.title}" for good? This can't be undone.`)) return;
+  const [url, done] = subtaskRoutes[action];
+  return save(url, { id: task.id, line: task.line, ...details }, done);
+}
+
 function deleteRejected(count) {
   if (state.busy) return;
   const what = count === 1 ? '1 rejected task' : `${count} rejected tasks`;
@@ -100,6 +115,7 @@ newTaskButton.addEventListener('click', () => taskDialog.openNew());
 searchInput.addEventListener('input', rerender);
 searchClear.addEventListener('click', () => {
   searchInput.value = '';
+  state.tagFilter = [];
   rerender();
   searchInput.focus();
 });

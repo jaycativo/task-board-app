@@ -144,7 +144,17 @@ backup exists, and ask me if anything is unclear.
   the earliest due date come first, and tasks with neither go last. Sorting only
   changes how cards are shown: your file keeps its own order, and the board
   remembers your choice.
-- **Search** by title, ID, priority, date, or a pasted `[[TODO#^task-id]]` link.
+- **Search** by title, tag, sub-task, ID, priority, date, or a pasted `[[TODO#^task-id]]` link.
+- **Tags.** Add tags in the task's dialog (`errands, home`). They are saved as
+  normal Obsidian `#tags` on the task line, and show on the card. A row of tags
+  sits under the search box: press one to show only tasks with that tag, press
+  more to narrow further, press it again to let go. Pressing a tag on a card
+  does the same. The board writes a task's tags after its title, so editing a
+  task moves any tags you typed in the middle of the line to that spot.
+- **Sub-tasks.** Type in the "Add a sub-task" box on a card. Sub-tasks are
+  indented checkbox lines under the task in `TODO.md` (`  - [ ] Book flights`),
+  so Obsidian understands them too. Tick them on the card, delete them with ×,
+  and see "1 of 3" progress. They move, archive, and delete with their task.
 - **Task notes.** A card's Notes button opens a drawer with that task's notes,
   newest first, and a box to add one. The card shows how many notes it has.
   Notes you added in the board can be edited or deleted there. Notes you wrote

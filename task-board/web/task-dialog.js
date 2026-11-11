@@ -16,6 +16,7 @@ export function createTaskDialog({ rerender, onCreated }) {
   const createButton = document.querySelector('#task-create');
   const cancelButton = document.querySelector('#task-cancel');
   const deleteButton = document.querySelector('#task-delete');
+  const tags = document.querySelector('#new-task-tags');
   const priorityGroup = document.querySelector('#new-task-priority');
   const picker = createDatePicker({ input: due, panel: document.querySelector('#calendar'), dialog });
 
@@ -34,7 +35,9 @@ export function createTaskDialog({ rerender, onCreated }) {
   let newTaskId;
   let saving = false;
   let snapshot = '';       // what the fields held when the dialog opened, to tell if anything was typed
-  const fieldsNow = () => JSON.stringify([title.value, due.value, priority.value]);
+  const fieldsNow = () => JSON.stringify([title.value, tags.value, due.value, priority.value]);
+  // "errands, #home" becomes ['errands', 'home'].
+  const tagList = () => tags.value.split(/[\s,]+/).filter(Boolean).map(tag => tag.replace(/^#/, ''));
 
   const setStatus = (message, isError = false) => {
     status.textContent = message;
@@ -60,6 +63,7 @@ export function createTaskDialog({ rerender, onCreated }) {
     while (state.board.tasks.some(task => task.id === newTaskId));
     editTarget = null;
     title.value = '';
+    tags.value = '';
     due.value = '';
     priority.value = '';
     show({ heading: 'New task', help: "New tasks land in Inbox. Move them when you're ready.", createLabel: 'Create task', canDelete: false });
@@ -70,6 +74,7 @@ export function createTaskDialog({ rerender, onCreated }) {
     editTarget = task;
     revision = state.board.revision;
     title.value = task.title ?? task.text;
+    tags.value = (task.tags || []).join(' ');
     due.value = task.due || '';
     priority.value = task.priority || '';
     show({ heading: 'Edit task', help: 'Changes save to TODO.md. Details under the task stay as they are.', createLabel: 'Save changes', canDelete: true });
@@ -113,13 +118,13 @@ export function createTaskDialog({ rerender, onCreated }) {
     }
     saving = true;
     createButton.disabled = cancelButton.disabled = true;
-    title.readOnly = true;
+    title.readOnly = tags.readOnly = true;
     setStatus('Saving to TODO.md…');
     try {
       const editing = editTarget;
       state.board = editing
-        ? await post('/api/edit', { revision, id: editing.id, line: editing.line, title: text, due: due.value.trim() || null, priority: priority.value || null })
-        : await post('/api/tasks', { revision, id: newTaskId, title: text, due: due.value.trim() || undefined, priority: priority.value || undefined });
+        ? await post('/api/edit', { revision, id: editing.id, line: editing.line, title: text, tags: tagList(), due: due.value.trim() || null, priority: priority.value || null })
+        : await post('/api/tasks', { revision, id: newTaskId, title: text, tags: tagList(), due: due.value.trim() || undefined, priority: priority.value || undefined });
       if (!editing) onCreated();
       dialog.close();
       rerender();
@@ -145,7 +150,7 @@ export function createTaskDialog({ rerender, onCreated }) {
     } finally {
       saving = false;
       createButton.disabled = cancelButton.disabled = false;
-      title.readOnly = false;
+      title.readOnly = tags.readOnly = false;
     }
   });
 

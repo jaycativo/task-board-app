@@ -41,7 +41,9 @@ read, what it may change, and what it must leave alone.
 `- [ ] <title> [priority] [📅 date] ^block-id`, then optional indented lines.
 
 - **The board owns** only: the checkbox state, the priority emoji, the `📅`
-  due date, and the `^block-id`.
+  due date, the `#tags`, and the `^block-id`. Tags are written after the title,
+  before the priority (`Title #home ⏫ 📅 2026-11-14 ^id`), so editing moves tags
+  typed mid-title to that spot. A `#` inside `[[Note#Heading]]` or a web address is not a tag.
 - **The board must keep** everything else on the line (repeat rules like `🔁`,
   tags, links, ` — [[source]]` suffixes) and every indented line under it.
   Indented lines are the task's details and move, archive, and delete with it.
@@ -53,6 +55,16 @@ read, what it may change, and what it must leave alone.
   A task without an ID can be moved and edited by line number, and gets an ID
   the first time it is edited. Notes need an ID.
 - Keep the file's line endings (`\n` or `\r\n`) when you rewrite lines.
+
+## Sub-tasks
+
+- A sub-task is an indented checkbox line (`  - [ ] text`) inside a task's
+  block. It has no ID; the board names it by its place among the task's
+  sub-tasks (`index`, from 0). Add puts a new one after all the task's indented
+  lines, with the same indent as the last sub-task (two spaces if none).
+- Toggling changes only the `[ ]`/`[x]`. Deleting removes only that line.
+  Sub-tasks follow the task when it moves, archives, or is deleted.
+- Endpoints: `/api/subtasks`, `/api/subtasks/toggle`, `/api/subtasks/delete`.
 
 ## Rejected
 
